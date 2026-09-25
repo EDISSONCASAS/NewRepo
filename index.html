@@ -77,6 +77,7 @@
     .tag-soporte { background: rgba(0,153,255,0.15); color: #5bc8ff; }
     .tag-asesoria { background: rgba(0,212,170,0.15); color: var(--accent); }
     .tag-otro { background: rgba(255,190,11,0.15); color: var(--warning); }
+    .tag-academia { background: rgba(147,51,234,0.15); color: #c084fc; }
     .sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
     .sec-title { font-size: 16px; font-weight: 600; }
     .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 1rem; }
@@ -171,13 +172,19 @@
       <div class="sec-title">Resumen mensual de actividad</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <select id="res-month" class="form-select" style="width:auto" onchange="renderResumen()"></select>
+        <select id="res-academia" class="form-select" style="width:auto" onchange="renderResumen()">
+          <option value="Todas">Todas las academias</option>
+          <option value="Academia 1">Academia 1</option>
+          <option value="Academia 2">Academia 2</option>
+          <option value="Academia 3">Academia 3</option>
+        </select>
         <button class="btn btn-excel" onclick="exportarExcel()">📊 Exportar Excel</button>
       </div>
     </div>
     <div class="stats-grid" id="stats-grid"></div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Cant.</th><th>Valor unit.</th><th>Total</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Academia</th><th>Tipo</th><th>Descripción</th><th>Cant.</th><th>Valor unit.</th><th>Total</th><th></th></tr></thead>
         <tbody id="res-tbody"></tbody>
       </table>
     </div>
@@ -199,10 +206,23 @@
       </div>
     </div>
     <div class="datos-section">
-      <div class="datos-section-title">⚙️ Parámetros</div>
+      <div class="datos-section-title">⚙️ Parámetros de Facturación y Academias</div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">N° Factura</label><input class="form-input" id="inv-num" placeholder="001" oninput="saveConfig()"></div>
         <div class="form-group"><label class="form-label">Mes</label><select class="form-select" id="inv-month" onchange="saveConfig();renderFactura()"></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Filtrar por Academia</label><select class="form-select" id="inv-academia" onchange="saveConfig();renderFactura()">
+          <option value="Todas">Todas (Consolidado)</option>
+          <option value="Academia 1">Academia 1</option>
+          <option value="Academia 2">Academia 2</option>
+          <option value="Academia 3">Academia 3</option>
+        </select></div>
+        <div class="form-group"><label class="form-label">Estado de Factura</label><select class="form-select" id="inv-estado" onchange="saveConfig();renderFactura()">
+          <option value="Pendiente de Pago">Pendiente de Pago</option>
+          <option value="Pagada">Pagada</option>
+          <option value="Vencida">Vencida</option>
+        </select></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Fecha de emisión</label><input class="form-input" type="date" id="inv-fecha" oninput="saveConfig();renderFactura()"></div>
@@ -233,15 +253,15 @@
       <div class="form-group"><label class="form-label">Datos bancarios</label><textarea class="form-textarea" id="d-banco" oninput="saveDatosLocales()"></textarea></div>
     </div>
     <div class="datos-section">
-      <div class="datos-section-title">🏢 Cliente</div>
+      <div class="datos-section-title">🏢 Cliente / Academias</div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Nombre cliente</label><input class="form-input" id="c-nombre" oninput="saveDatosLocales()"></div>
+        <div class="form-group"><label class="form-label">Nombre cliente principal</label><input class="form-input" id="c-nombre" oninput="saveDatosLocales()"></div>
         <div class="form-group"><label class="form-label">NIT</label><input class="form-input" id="c-nit" oninput="saveDatosLocales()"></div>
       </div>
       <div class="form-group"><label class="form-label">Contacto</label><input class="form-input" id="c-contacto" oninput="saveDatosLocales()"></div>
     </div>
     
-    <!-- NUEVA SECCIÓN DE SEGURIDAD Y ROTACIÓN DE CONTRASEÑA -->
+    <!-- SEGURIDAD Y ROTACIÓN DE CONTRASEÑA -->
     <div class="datos-section">
       <div class="datos-section-title">🔒 Seguridad y Rotación de Contraseña (30 días)</div>
       <div class="form-row">
@@ -255,20 +275,31 @@
   </div>
 </div>
 
+<!-- MODAL DE SERVICIO CON SELECTOR DE ACADEMIA -->
 <div class="modal-overlay" id="modal-servicio">
   <div class="modal">
     <div class="modal-title">
       <span id="modal-fecha-titulo">Registrar servicio</span>
       <button class="modal-close" onclick="closeModal('modal-servicio')">✕</button>
     </div>
-    <div class="form-group">
-      <label class="form-label">Tipo</label>
-      <select class="form-select" id="svc-tipo">
-        <option value="Soporte técnico">Soporte técnico</option>
-        <option value="Asesoría">Asesoría</option>
-        <option value="Capacitación">Capacitación</option>
-        <option value="Otro">Otro</option>
-      </select>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Academia</label>
+        <select class="form-select" id="svc-academia">
+          <option value="Academia 1">Academia 1</option>
+          <option value="Academia 2">Academia 2</option>
+          <option value="Academia 3">Academia 3</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo de servicio</label>
+        <select class="form-select" id="svc-tipo">
+          <option value="Soporte técnico">Soporte técnico</option>
+          <option value="Asesoría">Asesoría</option>
+          <option value="Capacitación">Capacitación</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
     </div>
     <div class="form-group"><label class="form-label">Descripción</label><input class="form-input" id="svc-desc"></div>
     <div class="form-row">
@@ -324,6 +355,31 @@ try {
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DOC_ID = 'prisma_vault_master';
 let _cryptoKey = null;
+let inactivityTimer = null;
+
+// ─── BLOQUEO AUTOMÁTICO POR INACTIVIDAD (5 MINUTOS) ───
+function resetInactivityTimer() {
+  clearTimeout(inactivityTimer);
+  if (document.getElementById('main-app').style.display === 'block') {
+    inactivityTimer = setTimeout(() => {
+      lockScreenDueToInactivity();
+    }, 5 * 60 * 1000); 
+  }
+}
+
+function lockScreenDueToInactivity() {
+  _cryptoKey = null;
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('main-nav').style.display = 'none';
+  document.getElementById('lock-screen').style.display = 'flex';
+  document.getElementById('lock-pass').value = '';
+  document.getElementById('lock-msg').style.color = '#ffbe0b';
+  document.getElementById('lock-msg').textContent = 'Bloqueado por inactividad (5 min)';
+}
+
+['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
+  window.addEventListener(evt, resetInactivityTimer);
+});
 
 // ─── CRIPTOGRAFÍA AES-256-GCM ───
 async function derivarClave(password, salt) {
@@ -419,7 +475,7 @@ async function lockAction() {
         servicios = plain.servicios || [];
         catalogo = plain.catalogo || [];
         datos = plain.datos || {};
-        config = plain.config || { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null };
+        config = plain.config || { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null, estado: 'Pendiente de Pago', academia: 'Todas' };
         _cryptoKey = key;
 
         // Validar política de rotación de 30 días
@@ -458,6 +514,7 @@ function desbloquear() {
   document.getElementById('main-nav').style.display = 'flex';
   document.getElementById('main-app').style.display = 'block';
   renderCalendar();
+  resetInactivityTimer();
 }
 
 function exportarJSON() {
@@ -480,7 +537,7 @@ let catalogo = [
   { id: 2, nombre: 'Consultoría TI & Seguridad', tarifa: 120000, tipo: 'Asesoría', desc: 'Revisión técnica' }
 ];
 let datos = {};
-let config = { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null };
+let config = { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null, estado: 'Pendiente de Pago', academia: 'Todas' };
 let currentDate = new Date();
 let currentYear = currentDate.getFullYear();
 let currentMonth = currentDate.getMonth();
@@ -588,13 +645,14 @@ function onTarifaSelect() {
 }
 
 function agregarServicio() {
+  const academia = document.getElementById('svc-academia').value;
   const tipo = document.getElementById('svc-tipo').value;
   const desc = document.getElementById('svc-desc').value.trim();
   const tarifa = parseFloat(document.getElementById('svc-tarifa').value) || 0;
   const cant = parseInt(document.getElementById('svc-cant').value) || 1;
   if (!desc || !tarifa) { alert('Completa descripción y tarifa'); return; }
   
-  servicios.push({ id: Date.now(), fecha: selectedDate, tipo, desc, tarifa, cant });
+  servicios.push({ id: Date.now(), fecha: selectedDate, academia, tipo, desc, tarifa, cant });
   save();
   renderServiciosDelDia(selectedDate);
   renderCalendar();
@@ -616,7 +674,7 @@ function renderServiciosDelDia(dateStr) {
       <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Total del día: <strong style="color:var(--accent)">$${total.toLocaleString('es-CO')}</strong></div>
       ${daySvcs.map(s => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-          <div><span class="tag ${tagClass(s.tipo)}">${s.tipo}</span> <span style="margin-left:6px">${s.desc}</span></div>           <div style="display:flex;align-items:center;gap:8px">             <span style="color:var(--accent)">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</span>
+          <div><span class="tag tag-academia">${s.academia}</span> <span class="tag ${tagClass(s.tipo)}">${s.tipo}</span> <span style="margin-left:6px">${s.desc}</span></div>           <div style="display:flex;align-items:center;gap:8px">             <span style="color:var(--accent)">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</span>
             <button class="btn btn-danger btn-sm" onclick="eliminarServicio(${s.id})">✕</button>
           </div>
         </div>`).join('')}
@@ -642,21 +700,28 @@ function populateResMonth() {
 
 function renderResumen() {
   const monthKey = document.getElementById('res-month').value || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-  const monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
+  const filtroAcademia = document.getElementById('res-academia').value;
+  
+  let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
+  if (filtroAcademia !== 'Todas') {
+    monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia);
+  }
+
   const total = monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0);
   const diasActivos = [...new Set(monthSvcs.map(s => s.fecha))].length;
   const prom = diasActivos ? Math.round(total / diasActivos) : 0;
   
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-label">Servicios</div><div class="stat-value">${monthSvcs.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Facturado</div><div class="stat-value accent">$${total.toLocaleString('es-CO')}</div></div>
+    <div class="stat-card"><div class="stat-label">Facturado (${filtroAcademia})</div><div class="stat-value accent">$${total.toLocaleString('es-CO')}</div></div>
     <div class="stat-card"><div class="stat-label">Promedio/día</div><div class="stat-value">$${prom.toLocaleString('es-CO')}</div><div class="stat-sub">${diasActivos} días laborados</div></div>`;
     
   const tbody = document.getElementById('res-tbody');
-  if (!monthSvcs.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin servicios</td></tr>'; return; }
+  if (!monthSvcs.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Sin servicios registrados para esta selección</td></tr>'; return; }
   tbody.innerHTML = monthSvcs.sort((a, b) => a.fecha.localeCompare(b.fecha)).map(s => `
     <tr>
       <td>${s.fecha}</td>
+      <td><span class="tag tag-academia">${s.academia}</span></td>
       <td><span class="tag ${tagClass(s.tipo)}">${s.tipo}</span></td>
       <td>${s.desc}</td><td>${s.cant}</td>
       <td>$${s.tarifa.toLocaleString('es-CO')}</td>
@@ -672,23 +737,28 @@ function eliminarServicioGlobal(id) {
 
 function exportarExcel() {
   const monthKey = document.getElementById('res-month').value || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+  const filtroAcademia = document.getElementById('res-academia').value;
   const [y, mo] = monthKey.split('-');
-  const monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
-  if (!monthSvcs.length) { alert('No hay servicios para exportar'); return; }
+  
+  let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
+  if (filtroAcademia !== 'Todas') {
+    monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia);
+  }
+  if (!monthSvcs.length) { alert('No hay servicios para exportar con este filtro'); return; }
   
   const wb = XLSX.utils.book_new();
   const rows = [
-    ['PRISMA TI — SERVICIOS REGISTRADOS'],
+    [`PRISMA TI — SERVICIOS (${filtroAcademia.toUpperCase()})`],
     ['Mes:', `${MESES[parseInt(mo) - 1]} ${y}`],
     [],
-    ['Fecha', 'Tipo', 'Descripción', 'Cantidad', 'Tarifa (COP)', 'Total (COP)'],
-    ...monthSvcs.map(s => [s.fecha, s.tipo, s.desc, s.cant, s.tarifa, s.tarifa * s.cant]),
+    ['Fecha', 'Academia', 'Tipo', 'Descripción', 'Cantidad', 'Tarifa (COP)', 'Total (COP)'],
+    ...monthSvcs.map(s => [s.fecha, s.academia, s.tipo, s.desc, s.cant, s.tarifa, s.tarifa * s.cant]),
     [],
-    ['', '', '', '', 'TOTAL:', monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0)]
+    ['', '', '', '', '', 'TOTAL:', monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0)]
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, `Servicios`);
-  XLSX.writeFile(wb, `PrismaTI_${MESES[parseInt(mo) - 1]}_${y}.xlsx`);
+  XLSX.writeFile(wb, `PrismaTI_${filtroAcademia}_${MESES[parseInt(mo) - 1]}_${y}.xlsx`);
 }
 
 function openCatModal(id) {
@@ -751,6 +821,8 @@ function loadConfig() {
   document.getElementById('inv-notas').value = config.notas || '';
   document.getElementById('inv-fecha').value = config.fecha || new Date().toISOString().split('T')[0];
   document.getElementById('inv-limite').value = config.limite || '';
+  if(document.getElementById('inv-academia')) document.getElementById('inv-academia').value = config.academia || 'Todas';
+  if(document.getElementById('inv-estado')) document.getElementById('inv-estado').value = config.estado || 'Pendiente de Pago';
 }
 
 function saveConfig() {
@@ -761,6 +833,8 @@ function saveConfig() {
     notas: document.getElementById('inv-notas').value,
     fecha: document.getElementById('inv-fecha').value,
     limite: document.getElementById('inv-limite').value,
+    academia: document.getElementById('inv-academia').value,
+    estado: document.getElementById('inv-estado').value,
     passwordChangedAt: config.passwordChangedAt
   };
   save();
@@ -770,22 +844,34 @@ function renderFactura() {
   const sel = document.getElementById('inv-month');
   if (!sel || !sel.value) return;
   const monthKey = sel.value;
+  const filtroAcademia = document.getElementById('inv-academia').value;
+  const estadoFactura = document.getElementById('inv-estado').value;
   const [y, mo] = monthKey.split('-');
-  const monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
+
+  let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
+  if (filtroAcademia !== 'Todas') {
+    monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia);
+  }
+
   const subtotal = monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0);
   const iva = parseFloat(document.getElementById('inv-iva').value) || 0;
   const ret = parseFloat(document.getElementById('inv-ret').value) || 0;
   const total = subtotal + (subtotal * iva / 100) - (subtotal * ret / 100);
   const d = datos;
 
+  let badgeColor = '#ffbe0b';
+  if(estadoFactura === 'Pagada') badgeColor = '#00d4aa';
+  if(estadoFactura === 'Vencida') badgeColor = '#ff4d6d';
+
   document.getElementById('factura-preview').innerHTML = `
   <div class="invoice-preview">
     <div class="inv-band">
       <div>
         <div class="inv-band-title">Prisma TI</div>
-        <div class="inv-band-sub">Soporte Técnico &amp; Asesoría</div>
+        <div class="inv-band-sub">Soporte Técnico &amp; Asesoría — <span style="color:#fff">${filtroAcademia}</span></div>
         <div class="inv-meta-row"><span>N° Factura:</span><span>#${document.getElementById('inv-num').value || '001'}</span></div>
         <div class="inv-meta-row"><span>Periodo:</span><span>${MESES[parseInt(mo) - 1]} ${y}</span></div>
+        <div class="inv-meta-row"><span>Estado:</span><span style="color:${badgeColor};font-weight:700">${estadoFactura}</span></div>
       </div>
       <div>
         <div style="font-size:10px;color:#00e5c0;font-weight:700">DIRIGIDO A:</div>
@@ -796,11 +882,11 @@ function renderFactura() {
     <div class="inv-stripe"></div>
     <div class="inv-body">
       <table class="inv-table">
-        <thead><tr><th>#</th><th>Servicio</th><th>Tarifa</th><th>Cant.</th><th>Total</th></tr></thead>
+        <thead><tr><th>#</th><th>Academia / Servicio</th><th>Tarifa</th><th>Cant.</th><th>Total</th></tr></thead>
         <tbody>${monthSvcs.map((s, i) => `
           <tr>
             <td>${i + 1}</td>
-            <td>${s.desc} <span style="font-size:11px;color:#7a9ab8">(${s.fecha})</span></td>             <td>$${s.tarifa.toLocaleString('es-CO')}</td>
+            <td>[<strong>${s.academia}</strong>]${s.desc} <span style="font-size:11px;color:#7a9ab8">(${s.fecha})</span></td>             <td>$${s.tarifa.toLocaleString('es-CO')}</td>
             <td>${s.cant}</td>             <td style="color:#00e5c0;font-weight:700">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</td>
           </tr>`).join('')}
         </tbody>
@@ -825,7 +911,6 @@ function loadDatos() {
     if (el) el.value = datos[k] || '';
   });
   
-  // Limpiar campos de contraseña y mostrar estado de rotación de 30 días
   document.getElementById('d-newpass').value = '';
   document.getElementById('d-confpass').value = '';
   
