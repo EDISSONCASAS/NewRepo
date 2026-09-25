@@ -218,29 +218,40 @@
   </div>
 
   <div id="page-datos" class="page">
-    <div class="sec-title" style="margin-bottom:1rem">Configuración de perfiles</div>
+    <div class="sec-title" style="margin-bottom:1rem">Configuración de perfiles y seguridad</div>
     <div class="datos-section">
       <div class="datos-section-title">👤 Mis datos (Emisor)</div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="d-nombre" oninput="saveDatos()"></div>
-        <div class="form-group"><label class="form-label">NIT / Documento</label><input class="form-input" id="d-nit" oninput="saveDatos()"></div>
+        <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="d-nombre" oninput="saveDatosLocales()"></div>
+        <div class="form-group"><label class="form-label">NIT / Documento</label><input class="form-input" id="d-nit" oninput="saveDatosLocales()"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="d-tel" oninput="saveDatos()"></div>
-        <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="d-email" oninput="saveDatos()"></div>
+        <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="d-tel" oninput="saveDatosLocales()"></div>
+        <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="d-email" oninput="saveDatosLocales()"></div>
       </div>
-      <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="d-dir" oninput="saveDatos()"></div>
-      <div class="form-group"><label class="form-label">Datos bancarios</label><textarea class="form-textarea" id="d-banco" oninput="saveDatos()"></textarea></div>
+      <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="d-dir" oninput="saveDatosLocales()"></div>
+      <div class="form-group"><label class="form-label">Datos bancarios</label><textarea class="form-textarea" id="d-banco" oninput="saveDatosLocales()"></textarea></div>
     </div>
     <div class="datos-section">
       <div class="datos-section-title">🏢 Cliente</div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Nombre cliente</label><input class="form-input" id="c-nombre" oninput="saveDatos()"></div>
-        <div class="form-group"><label class="form-label">NIT</label><input class="form-input" id="c-nit" oninput="saveDatos()"></div>
+        <div class="form-group"><label class="form-label">Nombre cliente</label><input class="form-input" id="c-nombre" oninput="saveDatosLocales()"></div>
+        <div class="form-group"><label class="form-label">NIT</label><input class="form-input" id="c-nit" oninput="saveDatosLocales()"></div>
       </div>
-      <div class="form-group"><label class="form-label">Contacto</label><input class="form-input" id="c-contacto" oninput="saveDatos()"></div>
+      <div class="form-group"><label class="form-label">Contacto</label><input class="form-input" id="c-contacto" oninput="saveDatosLocales()"></div>
     </div>
-    <div style="text-align:right"><button class="btn btn-primary" onclick="saveDatos();alert('Guardado!')">Guardar</button></div>
+    
+    <!-- NUEVA SECCIÓN DE SEGURIDAD Y ROTACIÓN DE CONTRASEÑA -->
+    <div class="datos-section">
+      <div class="datos-section-title">🔒 Seguridad y Rotación de Contraseña (30 días)</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nueva contraseña maestra</label><input class="form-input" type="password" id="d-newpass" placeholder="Dejar en blanco para mantener la actual"></div>
+        <div class="form-group"><label class="form-label">Confirmar contraseña</label><input class="form-input" type="password" id="d-confpass" placeholder="Confirmar nueva contraseña"></div>
+      </div>
+      <div id="d-pass-status" style="font-size:12px;color:var(--text3);margin-top:6px;">Calculando estado de rotación...</div>
+    </div>
+
+    <div style="text-align:right"><button class="btn btn-primary" onclick="saveDatos()">Guardar Cambios</button></div>
   </div>
 </div>
 
@@ -408,8 +419,22 @@ async function lockAction() {
         servicios = plain.servicios || [];
         catalogo = plain.catalogo || [];
         datos = plain.datos || {};
-        config = plain.config || { num: '001', iva: 0, ret: 0, notas: '' };
+        config = plain.config || { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null };
         _cryptoKey = key;
+
+        // Validar política de rotación de 30 días
+        if (!config.passwordChangedAt) {
+          config.passwordChangedAt = new Date().toISOString();
+          guardarTodo();
+        } else {
+          const diasTranscurridos = (new Date() - new Date(config.passwordChangedAt)) / (1000 * 60 * 60 * 24);
+          if (diasTranscurridos >= 30) {
+            setTimeout(() => {
+              alert("🔒 Alerta de Seguridad: Han pasado 30 días o más desde tu último cambio de contraseña. Por favor, actualízala en la pestaña 'Mis datos'.");
+            }, 500);
+          }
+        }
+
         desbloquear();
       } catch (err) {
         msgEl.style.color = '#ff4d6d';
@@ -418,6 +443,7 @@ async function lockAction() {
       }
     } else {
       _cryptoKey = key;
+      config.passwordChangedAt = new Date().toISOString();
       await guardarTodo();
       desbloquear();
     }
@@ -454,7 +480,7 @@ let catalogo = [
   { id: 2, nombre: 'Consultoría TI & Seguridad', tarifa: 120000, tipo: 'Asesoría', desc: 'Revisión técnica' }
 ];
 let datos = {};
-let config = { num: '001', iva: 0, ret: 0, notas: '' };
+let config = { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null };
 let currentDate = new Date();
 let currentYear = currentDate.getFullYear();
 let currentMonth = currentDate.getMonth();
@@ -590,9 +616,7 @@ function renderServiciosDelDia(dateStr) {
       <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Total del día: <strong style="color:var(--accent)">$${total.toLocaleString('es-CO')}</strong></div>
       ${daySvcs.map(s => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-          <div><span class="tag ${tagClass(s.tipo)}">${s.tipo}</span> <span style="margin-left:6px">${s.desc}</span></div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="color:var(--accent)">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</span>
+          <div><span class="tag ${tagClass(s.tipo)}">${s.tipo}</span> <span style="margin-left:6px">${s.desc}</span></div>           <div style="display:flex;align-items:center;gap:8px">             <span style="color:var(--accent)">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</span>
             <button class="btn btn-danger btn-sm" onclick="eliminarServicio(${s.id})">✕</button>
           </div>
         </div>`).join('')}
@@ -737,6 +761,7 @@ function saveConfig() {
     notas: document.getElementById('inv-notas').value,
     fecha: document.getElementById('inv-fecha').value,
     limite: document.getElementById('inv-limite').value,
+    passwordChangedAt: config.passwordChangedAt
   };
   save();
 }
@@ -775,10 +800,8 @@ function renderFactura() {
         <tbody>${monthSvcs.map((s, i) => `
           <tr>
             <td>${i + 1}</td>
-            <td>${s.desc} <span style="font-size:11px;color:#7a9ab8">(${s.fecha})</span></td>
-            <td>$${s.tarifa.toLocaleString('es-CO')}</td>
-            <td>${s.cant}</td>
-            <td style="color:#00e5c0;font-weight:700">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</td>
+            <td>${s.desc} <span style="font-size:11px;color:#7a9ab8">(${s.fecha})</span></td>             <td>$${s.tarifa.toLocaleString('es-CO')}</td>
+            <td>${s.cant}</td>             <td style="color:#00e5c0;font-weight:700">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -801,14 +824,65 @@ function loadDatos() {
     const el = document.getElementById(k);
     if (el) el.value = datos[k] || '';
   });
+  
+  // Limpiar campos de contraseña y mostrar estado de rotación de 30 días
+  document.getElementById('d-newpass').value = '';
+  document.getElementById('d-confpass').value = '';
+  
+  const statusEl = document.getElementById('d-pass-status');
+  if (config.passwordChangedAt) {
+    const dias = Math.floor((new Date() - new Date(config.passwordChangedAt)) / (1000 * 60 * 60 * 24));
+    const restantes = Math.max(0, 30 - dias);
+    if (dias >= 30) {
+      statusEl.innerHTML = `<span style="color:var(--danger)">⚠️ Contraseña vencida (${dias} días desde el último cambio). Actualízala ahora.</span>`;
+    } else {
+      statusEl.innerHTML = `Último cambio de clave hace <strong>${dias} días</strong>. Faltan <strong>${restantes} días</strong> para la rotación obligatoria.`;
+    }
+  } else {
+    statusEl.textContent = 'Sin registro previo de rotación de clave.';
+  }
 }
 
-function saveDatos() {
+function saveDatosLocales() {
   ['d-nombre', 'd-nit', 'd-tel', 'd-email', 'd-dir', 'd-banco', 'c-nombre', 'c-nit', 'c-contacto'].forEach(k => {
     const el = document.getElementById(k);
     if (el) datos[k] = el.value;
   });
+}
+
+async function saveDatos() {
+  saveDatosLocales();
+
+  const p1 = document.getElementById('d-newpass').value;
+  const p2 = document.getElementById('d-confpass').value;
+
+  if (p1) {
+    if (p1 !== p2) {
+      alert('Las nuevas contraseñas no coinciden.');
+      return;
+    }
+    try {
+      const rawSalt = Array.from(crypto.getRandomValues(new Uint8Array(16))).join(',');
+      localStorage.setItem('fl_salt', rawSalt);
+      const saltBytes = new Uint8Array(rawSalt.split(',').map(Number));
+      const newKey = await derivarClave(p1, saltBytes);
+      
+      config.passwordChangedAt = new Date().toISOString();
+      _cryptoKey = newKey;
+      await guardarTodo();
+      alert('¡Datos y contraseña maestra actualizados con éxito! Ciclo de 30 días reiniciado.');
+      loadDatos();
+      return;
+    } catch(e) {
+      console.error(e);
+      alert('Error al actualizar la contraseña.');
+      return;
+    }
+  }
+
   save();
+  alert('Guardado con éxito!');
+  loadDatos();
 }
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
