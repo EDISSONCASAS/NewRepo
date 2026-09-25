@@ -173,10 +173,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <select id="res-month" class="form-select" style="width:auto" onchange="renderResumen()"></select>
         <select id="res-academia" class="form-select" style="width:auto" onchange="renderResumen()">
-          <option value="Todas">Todas las academias</option>
-          <option value="Academia 1">Academia 1</option>
-          <option value="Academia 2">Academia 2</option>
-          <option value="Academia 3">Academia 3</option>
+          <!-- Se llena dinámicamente -->
         </select>
         <button class="btn btn-excel" onclick="exportarExcel()">📊 Exportar Excel</button>
       </div>
@@ -212,11 +209,8 @@
         <div class="form-group"><label class="form-label">Mes</label><select class="form-select" id="inv-month" onchange="saveConfig();renderFactura()"></select></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Filtrar por Academia</label><select class="form-select" id="inv-academia" onchange="saveConfig();renderFactura()">
-          <option value="Todas">Todas (Consolidado)</option>
-          <option value="Academia 1">Academia 1</option>
-          <option value="Academia 2">Academia 2</option>
-          <option value="Academia 3">Academia 3</option>
+        <div class="form-group"><label class="form-label">Generar a nombre de:</label><select class="form-select" id="inv-academia" onchange="saveConfig();renderFactura()">
+          <!-- Se llena dinámicamente -->
         </select></div>
         <div class="form-group"><label class="form-label">Estado de Factura</label><select class="form-select" id="inv-estado" onchange="saveConfig();renderFactura()">
           <option value="Pendiente de Pago">Pendiente de Pago</option>
@@ -239,11 +233,12 @@
 
   <div id="page-datos" class="page">
     <div class="sec-title" style="margin-bottom:1rem">Configuración de perfiles y seguridad</div>
+    
     <div class="datos-section">
       <div class="datos-section-title">👤 Mis datos (Emisor)</div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="d-nombre" oninput="saveDatosLocales()"></div>
-        <div class="form-group"><label class="form-label">NIT / Documento</label><input class="form-input" id="d-nit" oninput="saveDatosLocales()"></div>
+        <div class="form-group"><label class="form-label">Mi Nombre</label><input class="form-input" id="d-nombre" oninput="saveDatosLocales()"></div>
+        <div class="form-group"><label class="form-label">Mi NIT / Documento</label><input class="form-input" id="d-nit" oninput="saveDatosLocales()"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="d-tel" oninput="saveDatosLocales()"></div>
@@ -252,13 +247,14 @@
       <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="d-dir" oninput="saveDatosLocales()"></div>
       <div class="form-group"><label class="form-label">Datos bancarios</label><textarea class="form-textarea" id="d-banco" oninput="saveDatosLocales()"></textarea></div>
     </div>
+    
+    <!-- NUEVO: GESTOR DE ACADEMIAS -->
     <div class="datos-section">
-      <div class="datos-section-title">🏢 Cliente / Academias</div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Nombre cliente principal</label><input class="form-input" id="c-nombre" oninput="saveDatosLocales()"></div>
-        <div class="form-group"><label class="form-label">NIT</label><input class="form-input" id="c-nit" oninput="saveDatosLocales()"></div>
+      <div class="sec-header" style="margin-bottom:0.5rem">
+        <div class="datos-section-title" style="margin-bottom:0">🏢 Mis Academias / Clientes</div>
+        <button class="btn btn-secondary btn-sm" onclick="openAcademiaModal()">+ Añadir Academia</button>
       </div>
-      <div class="form-group"><label class="form-label">Contacto</label><input class="form-input" id="c-contacto" oninput="saveDatosLocales()"></div>
+      <div id="academias-list" style="display:grid;gap:10px;"></div>
     </div>
     
     <!-- SEGURIDAD Y ROTACIÓN DE CONTRASEÑA -->
@@ -275,7 +271,7 @@
   </div>
 </div>
 
-<!-- MODAL DE SERVICIO CON SELECTOR DE ACADEMIA -->
+<!-- MODAL DE SERVICIO CON SELECTOR DINÁMICO DE ACADEMIA -->
 <div class="modal-overlay" id="modal-servicio">
   <div class="modal">
     <div class="modal-title">
@@ -286,9 +282,7 @@
       <div class="form-group">
         <label class="form-label">Academia</label>
         <select class="form-select" id="svc-academia">
-          <option value="Academia 1">Academia 1</option>
-          <option value="Academia 2">Academia 2</option>
-          <option value="Academia 3">Academia 3</option>
+          <!-- Se llena dinámicamente -->
         </select>
       </div>
       <div class="form-group">
@@ -315,6 +309,7 @@
   </div>
 </div>
 
+<!-- MODAL DE CATÁLOGO -->
 <div class="modal-overlay" id="modal-catalogo">
   <div class="modal">
     <div class="modal-title"><span id="cat-modal-title">Item de catálogo</span><button class="modal-close" onclick="closeModal('modal-catalogo')">✕</button></div>
@@ -326,6 +321,22 @@
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="closeModal('modal-catalogo')">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarCatalogo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARA GESTIONAR ACADEMIAS -->
+<div class="modal-overlay" id="modal-academia">
+  <div class="modal">
+    <div class="modal-title"><span id="aca-modal-title">Nueva Academia</span><button class="modal-close" onclick="closeModal('modal-academia')">✕</button></div>
+    <div class="form-group"><label class="form-label">Nombre de la Academia</label><input class="form-input" id="aca-nombre" placeholder="Ej. Academia Central"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">NIT (Opcional)</label><input class="form-input" id="aca-nit" placeholder="Ej. 900.123.456"></div>
+      <div class="form-group"><label class="form-label">Contacto (Opcional)</label><input class="form-input" id="aca-contacto" placeholder="Nombre de la persona"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeModal('modal-academia')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAcademia()">Guardar Academia</button>
     </div>
   </div>
 </div>
@@ -408,7 +419,7 @@ async function descifrar(payload, key) {
 // ─── GUARDADO Y SINCRONIZACIÓN EN LA NUBE ───
 async function guardarTodo() {
   if (!_cryptoKey) return;
-  const data = { servicios, catalogo, datos, config };
+  const data = { servicios, catalogo, academias, datos, config };
   const payload = await cifrar(data, _cryptoKey);
   const salt = localStorage.getItem('fl_salt') || '';
   
@@ -474,6 +485,11 @@ async function lockAction() {
         const plain = await descifrar(storedPayload, key);
         servicios = plain.servicios || [];
         catalogo = plain.catalogo || [];
+        academias = plain.academias || [
+          {id: 1, nombre: 'Academia 1', nit: '', contacto: ''},
+          {id: 2, nombre: 'Academia 2', nit: '', contacto: ''},
+          {id: 3, nombre: 'Academia 3', nit: '', contacto: ''}
+        ];
         datos = plain.datos || {};
         config = plain.config || { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null, estado: 'Pendiente de Pago', academia: 'Todas' };
         _cryptoKey = key;
@@ -513,13 +529,14 @@ function desbloquear() {
   document.getElementById('lock-screen').style.display = 'none';
   document.getElementById('main-nav').style.display = 'flex';
   document.getElementById('main-app').style.display = 'block';
+  renderAcademias();
   renderCalendar();
   resetInactivityTimer();
 }
 
 function exportarJSON() {
   if (!_cryptoKey) return;
-  cifrar({ servicios, catalogo, datos, config }, _cryptoKey).then(payload => {
+  cifrar({ servicios, catalogo, academias, datos, config }, _cryptoKey).then(payload => {
     const meta = { version: 1, fecha: new Date().toISOString(), datos: payload };
     const blob = new Blob([JSON.stringify(meta, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -536,6 +553,7 @@ let catalogo = [
   { id: 1, nombre: 'Soporte remoto L1/L2', tarifa: 80000, tipo: 'Soporte técnico', desc: 'Atención a usuarios' },
   { id: 2, nombre: 'Consultoría TI & Seguridad', tarifa: 120000, tipo: 'Asesoría', desc: 'Revisión técnica' }
 ];
+let academias = [];
 let datos = {};
 let config = { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null, estado: 'Pendiente de Pago', academia: 'Todas' };
 let currentDate = new Date();
@@ -543,6 +561,7 @@ let currentYear = currentDate.getFullYear();
 let currentMonth = currentDate.getMonth();
 let selectedDate = null;
 let editCatId = null;
+let editAcaId = null;
 
 function showPage(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -561,6 +580,97 @@ function tagClass(t) {
   return 'tag-otro';
 }
 
+// ─── GESTIÓN DE ACADEMIAS DINÁMICAS ───
+function renderAcademias() {
+  document.getElementById('academias-list').innerHTML = academias.map(a => `
+    <div style="background:var(--bg3);padding:12px;border:1px solid var(--border);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-weight:600;font-size:14px">${a.nombre}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">NIT: ${a.nit || 'N/A'} | Contacto: ${a.contacto || 'N/A'}</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-secondary btn-sm" onclick="openAcademiaModal(${a.id})">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="eliminarAcademia(${a.id})">✕</button>
+      </div>
+    </div>
+  `).join('');
+  
+  if(academias.length === 0) {
+    document.getElementById('academias-list').innerHTML = '<div class="empty" style="padding:1rem">No tienes academias registradas.</div>';
+  }
+  
+  actualizarSelectoresAcademia();
+}
+
+function openAcademiaModal(id) {
+  editAcaId = id || null;
+  const a = id ? academias.find(x => x.id === id) : null;
+  document.getElementById('aca-modal-title').textContent = a ? 'Editar Academia' : 'Nueva Academia';
+  document.getElementById('aca-nombre').value = a ? a.nombre : '';
+  document.getElementById('aca-nit').value = a ? a.nit : '';
+  document.getElementById('aca-contacto').value = a ? a.contacto : '';
+  openModal('modal-academia');
+}
+
+function guardarAcademia() {
+  const nombre = document.getElementById('aca-nombre').value.trim();
+  if (!nombre) { alert("El nombre es obligatorio"); return; }
+  
+  const nit = document.getElementById('aca-nit').value.trim();
+  const contacto = document.getElementById('aca-contacto').value.trim();
+  
+  if (editAcaId) {
+    const idx = academias.findIndex(x => x.id === editAcaId);
+    const nombreAntiguo = academias[idx].nombre;
+    academias[idx] = { ...academias[idx], nombre, nit, contacto };
+    
+    // Si cambias el nombre, actualizamos el historial de servicios para que no se pierdan
+    servicios.forEach(s => {
+      if (s.academia === nombreAntiguo) s.academia = nombre;
+    });
+  } else {
+    academias.push({ id: Date.now(), nombre, nit, contacto });
+  }
+  
+  save(); 
+  renderAcademias(); 
+  closeModal('modal-academia');
+  
+  // Actualizar vistas si están abiertas
+  if (document.getElementById('page-resumen').classList.contains('active')) renderResumen();
+  if (document.getElementById('page-factura').classList.contains('active')) renderFactura();
+}
+
+function eliminarAcademia(id) {
+  if (confirm('¿Estás seguro de eliminar esta academia? Sus servicios se mantendrán, pero deberás editarlos.')) {
+    academias = academias.filter(x => x.id !== id);
+    save();
+    renderAcademias();
+  }
+}
+
+function actualizarSelectoresAcademia() {
+  const opciones = academias.map(a => `<option value="${a.nombre}">${a.nombre}</option>`).join('');
+  
+  const svcSel = document.getElementById('svc-academia');
+  if (svcSel) svcSel.innerHTML = opciones || '<option value="">Sin academias</option>';
+  
+  const resSel = document.getElementById('res-academia');
+  if (resSel) {
+    const val = resSel.value;
+    resSel.innerHTML = `<option value="Todas">Todas las academias</option>` + opciones;
+    resSel.value = val || 'Todas';
+  }
+  
+  const invSel = document.getElementById('inv-academia');
+  if (invSel) {
+    const val = invSel.value;
+    invSel.innerHTML = `<option value="Todas">Todas (Consolidado)</option>` + opciones;
+    invSel.value = val || 'Todas';
+  }
+}
+
+// ─── CALENDARIO Y SERVICIOS ───
 function renderCalendar() {
   const grid = document.getElementById('cal-grid');
   document.getElementById('cal-title').textContent = `${MESES[currentMonth]} ${currentYear}`;
@@ -608,6 +718,10 @@ function changeMonth(dir) {
 }
 
 function openServicioModal(dateStr, day) {
+  if (academias.length === 0) {
+    alert("¡Primero debes crear al menos una academia en la pestaña 'Mis datos'!");
+    return;
+  }
   selectedDate = dateStr;
   document.getElementById('modal-fecha-titulo').textContent = `Servicios del ${day} de ${MESES[currentMonth]}`;
   populateTarifaSelect();
@@ -650,7 +764,7 @@ function agregarServicio() {
   const desc = document.getElementById('svc-desc').value.trim();
   const tarifa = parseFloat(document.getElementById('svc-tarifa').value) || 0;
   const cant = parseInt(document.getElementById('svc-cant').value) || 1;
-  if (!desc || !tarifa) { alert('Completa descripción y tarifa'); return; }
+  if (!desc || !tarifa || !academia) { alert('Completa todos los campos obligatorios'); return; }
   
   servicios.push({ id: Date.now(), fecha: selectedDate, academia, tipo, desc, tarifa, cant });
   save();
@@ -703,7 +817,7 @@ function renderResumen() {
   const filtroAcademia = document.getElementById('res-academia').value;
   
   let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
-  if (filtroAcademia !== 'Todas') {
+  if (filtroAcademia && filtroAcademia !== 'Todas') {
     monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia);
   }
 
@@ -713,7 +827,7 @@ function renderResumen() {
   
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-label">Servicios</div><div class="stat-value">${monthSvcs.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Facturado (${filtroAcademia})</div><div class="stat-value accent">$${total.toLocaleString('es-CO')}</div></div>
+    <div class="stat-card"><div class="stat-label">Facturado (${filtroAcademia || 'Todas'})</div><div class="stat-value accent">$${total.toLocaleString('es-CO')}</div></div>
     <div class="stat-card"><div class="stat-label">Promedio/día</div><div class="stat-value">$${prom.toLocaleString('es-CO')}</div><div class="stat-sub">${diasActivos} días laborados</div></div>`;
     
   const tbody = document.getElementById('res-tbody');
@@ -737,7 +851,7 @@ function eliminarServicioGlobal(id) {
 
 function exportarExcel() {
   const monthKey = document.getElementById('res-month').value || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-  const filtroAcademia = document.getElementById('res-academia').value;
+  const filtroAcademia = document.getElementById('res-academia').value || 'Todas';
   const [y, mo] = monthKey.split('-');
   
   let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
@@ -849,7 +963,7 @@ function renderFactura() {
   const [y, mo] = monthKey.split('-');
 
   let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
-  if (filtroAcademia !== 'Todas') {
+  if (filtroAcademia && filtroAcademia !== 'Todas') {
     monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia);
   }
 
@@ -858,6 +972,20 @@ function renderFactura() {
   const ret = parseFloat(document.getElementById('inv-ret').value) || 0;
   const total = subtotal + (subtotal * iva / 100) - (subtotal * ret / 100);
   const d = datos;
+
+  // Lógica Dinámica para mostrar el Nombre y NIT en la factura
+  let clienteNombre = 'Consolidado General';
+  let clienteNit = '';
+  
+  if (filtroAcademia && filtroAcademia !== 'Todas') {
+    const infoAcademia = academias.find(a => a.nombre === filtroAcademia);
+    if (infoAcademia) {
+      clienteNombre = infoAcademia.nombre;
+      clienteNit = infoAcademia.nit;
+    } else {
+      clienteNombre = filtroAcademia;
+    }
+  }
 
   let badgeColor = '#ffbe0b';
   if(estadoFactura === 'Pagada') badgeColor = '#00d4aa';
@@ -868,15 +996,15 @@ function renderFactura() {
     <div class="inv-band">
       <div>
         <div class="inv-band-title">Prisma TI</div>
-        <div class="inv-band-sub">Soporte Técnico &amp; Asesoría — <span style="color:#fff">${filtroAcademia}</span></div>
+        <div class="inv-band-sub">Soporte Técnico &amp; Asesoría</div>
         <div class="inv-meta-row"><span>N° Factura:</span><span>#${document.getElementById('inv-num').value || '001'}</span></div>
         <div class="inv-meta-row"><span>Periodo:</span><span>${MESES[parseInt(mo) - 1]} ${y}</span></div>
         <div class="inv-meta-row"><span>Estado:</span><span style="color:${badgeColor};font-weight:700">${estadoFactura}</span></div>
       </div>
       <div>
         <div style="font-size:10px;color:#00e5c0;font-weight:700">DIRIGIDO A:</div>
-        <div style="font-weight:700;color:#fff">${d['c-nombre'] || 'Cliente'}</div>
-        <div style="font-size:12px;color:#7a9ab8">${d['c-nit'] ? 'NIT: ' + d['c-nit'] : ''}</div>
+        <div style="font-weight:700;color:#fff">${clienteNombre}</div>
+        <div style="font-size:12px;color:#7a9ab8">${clienteNit ? 'NIT: ' + clienteNit : ''}</div>
       </div>
     </div>
     <div class="inv-stripe"></div>
@@ -906,7 +1034,7 @@ function renderFactura() {
 }
 
 function loadDatos() {
-  ['d-nombre', 'd-nit', 'd-tel', 'd-email', 'd-dir', 'd-banco', 'c-nombre', 'c-nit', 'c-contacto'].forEach(k => {
+  ['d-nombre', 'd-nit', 'd-tel', 'd-email', 'd-dir', 'd-banco'].forEach(k => {
     const el = document.getElementById(k);
     if (el) el.value = datos[k] || '';
   });
@@ -929,7 +1057,7 @@ function loadDatos() {
 }
 
 function saveDatosLocales() {
-  ['d-nombre', 'd-nit', 'd-tel', 'd-email', 'd-dir', 'd-banco', 'c-nombre', 'c-nit', 'c-contacto'].forEach(k => {
+  ['d-nombre', 'd-nit', 'd-tel', 'd-email', 'd-dir', 'd-banco'].forEach(k => {
     const el = document.getElementById(k);
     if (el) datos[k] = el.value;
   });
