@@ -27,7 +27,7 @@
     .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
     .save-indicator { margin-left: auto; font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 8px; }
     .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
-    .page { display: none; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+    .page { display: none; padding: 1.5rem; max-width: 1100px; margin: 0 auto; padding-bottom: 100px; }
     .page.active { display: block; }
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
     .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; }
@@ -85,10 +85,10 @@
     .cat-name { font-size: 14px; font-weight: 600; }
     .cat-price { font-size: 18px; font-weight: 700; color: var(--accent); }
     .datos-section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
-    .datos-section-title { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 1rem; }
+    .datos-section-title { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
     .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 13px; }
     .invoice-preview { background: #0a0f1a; color: #c8d8e8; border-radius: 6px; overflow: hidden; margin-top: 1rem; font-family: 'Segoe UI', sans-serif; position: relative; }
-    .inv-band { background: #0a0f1a; padding: 2rem 2rem 1.25rem; display: flex; justify-content: space-between; border-bottom: 2px solid #00e5c0; flex-wrap: wrap; gap: 1rem; }
+    .inv-band { background: #0a0f1a; padding: 2rem 2rem 1.25rem; display: flex; justify-content: space-between; border-bottom: 2px solid #00e5c0; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
     .inv-band-title { font-size: 32px; font-weight: 900; color: #fff; text-transform: uppercase; }
     .inv-band-sub { font-size: 11px; color: #00e5c0; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
     .inv-meta-row { font-size: 13px; color: #7a9ab8; display: flex; gap: 8px; margin-top: 4px; }
@@ -106,12 +106,15 @@
     .inv-totals-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: #7a9ab8; }
     .inv-totals-row.final { border-top: 1px solid #00e5c0; padding-top: 10px; font-size: 15px; font-weight: 800; color: #fff; }
     .inv-totals-row.final span:last-child { color: #00e5c0; font-size: 17px; }
+    
+    .fab-btn { position: fixed; bottom: 25px; right: 25px; z-index: 500; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,212,170,0.4); cursor: pointer; transition: 0.3s; color: #050811; font-size: 24px; border: none; }
+    .fab-btn:hover { transform: scale(1.05); }
 
     @media print {
       body { background: #fff !important; color: #000 !important; }
-      #lock-screen, #main-nav, .sec-header, .datos-section, .btn, .cal-header, .cal-grid-header, .cal-grid, #stats-grid, .table-wrap { display: none !important; }
-      #page-factura { display: block !important; padding: 0 !important; }
-      .invoice-preview { box-shadow: none !important; border: none !important; width: 100% !important; }
+      #lock-screen, #main-nav, .sec-header, .datos-section, .btn, .cal-header, .cal-grid-header, .cal-grid, #stats-grid, .table-wrap, .fab-btn { display: none !important; }
+      #page-factura { display: block !important; padding: 0 !important; margin: 0 !important; }
+      .invoice-preview { box-shadow: none !important; border: none !important; width: 100% !important; margin: 0 !important; }
     }
   </style>
 </head>
@@ -125,10 +128,22 @@
     <div style="font-size:12px;color:#6b7492;margin-bottom:1.5rem;letter-spacing:1px;text-transform:uppercase;">Nube Cifrada Multi-dispositivo</div>
     
     <div id="sync-status" style="font-size:11px;color:#00d4aa;margin-bottom:1rem;">Conectando a la nube...</div>
+    <div id="lock-msg" style="font-size:13px;color:#9ba3b8;margin-bottom:1.25rem;">Autenticación requerida</div>
 
-    <div id="lock-msg" style="font-size:13px;color:#9ba3b8;margin-bottom:1.25rem;">Ingresa tu contraseña maestra</div>
-    <input id="lock-pass" type="password" placeholder="Contraseña" style="width:100%;background:#232736;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;font-size:14px;color:#e8eaf0;outline:none;margin-bottom:10px;font-family:inherit;" onkeydown="if(event.key==='Enter')lockAction()">
-    <button class="btn btn-primary" onclick="lockAction()" style="width:100%;padding:11px;">Entrar y Sincronizar</button>
+    <!-- MODO ESTÁNDAR -->
+    <div id="login-standard">
+      <input id="lock-pass" type="password" placeholder="Contraseña maestra" style="width:100%;background:#232736;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;font-size:14px;color:#e8eaf0;outline:none;margin-bottom:10px;font-family:inherit;" onkeydown="if(event.key==='Enter')lockAction()">
+      <button class="btn btn-primary" onclick="lockAction()" style="width:100%;padding:11px;">Entrar y Sincronizar</button>
+      <div id="btn-switch-pin" style="display:none;margin-top:15px;cursor:pointer;font-size:12px;color:var(--accent);" onclick="toggleLoginMode('pin')">📱 Usar PIN rápido</div>
+    </div>
+
+    <!-- MODO PIN -->
+    <div id="login-pin" style="display:none;">
+      <input id="lock-pin" type="password" maxlength="4" placeholder="••••" style="width:100%;background:#232736;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;font-size:24px;letter-spacing:15px;text-align:center;color:#e8eaf0;outline:none;margin-bottom:10px;font-family:inherit;" pattern="\d*" onkeydown="if(event.key==='Enter')loginWithPIN()">
+      <button class="btn btn-primary" onclick="loginWithPIN()" style="width:100%;padding:11px;">Entrar con PIN</button>
+      <div style="margin-top:15px;cursor:pointer;font-size:12px;color:var(--text3);" onclick="toggleLoginMode('standard')">Usar contraseña maestra completa</div>
+    </div>
+
   </div>
 </div>
 
@@ -143,9 +158,11 @@
   <div class="save-indicator">
     <div class="dot"></div>
     <span id="save-text">Nube sincronizada ☁️</span>
-    <button onclick="exportarJSON()" class="btn btn-secondary btn-sm" title="Descargar copia local">⬇ Backup</button>
   </div>
 </nav>
+
+<!-- BOTÓN FLOTANTE (FAB) ACCESO DIRECTO -->
+<button id="fab-action" class="fab-btn" onclick="fabGlobalAction()" title="Copia de seguridad manual">💾</button>
 
 <!-- APP PRINCIPAL -->
 <div id="main-app" style="display:none">
@@ -198,9 +215,6 @@
   <div id="page-factura" class="page">
     <div class="sec-header">
       <div class="sec-title">Factura / Cuenta de cobro</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
-      </div>
     </div>
     <div class="datos-section">
       <div class="datos-section-title">⚙️ Parámetros de Facturación y Academias</div>
@@ -209,9 +223,7 @@
         <div class="form-group"><label class="form-label">Mes</label><select class="form-select" id="inv-month" onchange="saveConfig();renderFactura()"></select></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Generar a nombre de:</label><select class="form-select" id="inv-academia" onchange="saveConfig();renderFactura()">
-          <!-- Se llena dinámicamente -->
-        </select></div>
+        <div class="form-group"><label class="form-label">Generar a nombre de:</label><select class="form-select" id="inv-academia" onchange="saveConfig();renderFactura()"></select></div>
         <div class="form-group"><label class="form-label">Estado de Factura</label><select class="form-select" id="inv-estado" onchange="saveConfig();renderFactura()">
           <option value="Pendiente de Pago">Pendiente de Pago</option>
           <option value="Pagada">Pagada</option>
@@ -232,10 +244,16 @@
   </div>
 
   <div id="page-datos" class="page">
-    <div class="sec-title" style="margin-bottom:1rem">Configuración de perfiles y seguridad</div>
+    <div class="sec-title" style="margin-bottom:1rem">Configuración y Seguridad</div>
     
     <div class="datos-section">
-      <div class="datos-section-title">👤 Mis datos (Emisor)</div>
+      <div class="datos-section-title">
+        <span>👤 Mis datos (Emisor)</span>
+        <label style="cursor:pointer;color:var(--accent);font-size:11px;">
+          + Cargar Logotipo <input type="file" id="d-logo-upload" accept="image/*" style="display:none;" onchange="handleLogoUpload(event)">
+        </label>
+      </div>
+      <div style="margin-bottom:15px;"><img id="logo-preview" style="max-height:60px;display:none;border-radius:4px;"></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Mi Nombre</label><input class="form-input" id="d-nombre" oninput="saveDatosLocales()"></div>
         <div class="form-group"><label class="form-label">Mi NIT / Documento</label><input class="form-input" id="d-nit" oninput="saveDatosLocales()"></div>
@@ -248,7 +266,6 @@
       <div class="form-group"><label class="form-label">Datos bancarios</label><textarea class="form-textarea" id="d-banco" oninput="saveDatosLocales()"></textarea></div>
     </div>
     
-    <!-- NUEVO: GESTOR DE ACADEMIAS -->
     <div class="datos-section">
       <div class="sec-header" style="margin-bottom:0.5rem">
         <div class="datos-section-title" style="margin-bottom:0">🏢 Mis Academias / Clientes</div>
@@ -257,9 +274,24 @@
       <div id="academias-list" style="display:grid;gap:10px;"></div>
     </div>
     
-    <!-- SEGURIDAD Y ROTACIÓN DE CONTRASEÑA -->
+    <!-- ACCESO RÁPIDO Y SEGURIDAD -->
     <div class="datos-section">
-      <div class="datos-section-title">🔒 Seguridad y Rotación de Contraseña (30 días)</div>
+      <div class="datos-section-title">📱 Acceso Rápido (PIN para celular)</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Crear PIN de 4 dígitos</label>
+          <input type="password" id="d-pin-setup" maxlength="4" class="form-input" placeholder="Ej. 1234">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña maestra actual (Confirmación)</label>
+          <input type="password" id="d-pin-master" class="form-input" placeholder="Requerida para activar PIN">
+        </div>
+      </div>
+      <div style="text-align:right;"><button class="btn btn-secondary btn-sm" onclick="setupPIN()">Guardar PIN Rápido</button></div>
+    </div>
+
+    <div class="datos-section">
+      <div class="datos-section-title">🔒 Rotación de Contraseña (30 días)</div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Nueva contraseña maestra</label><input class="form-input" type="password" id="d-newpass" placeholder="Dejar en blanco para mantener la actual"></div>
         <div class="form-group"><label class="form-label">Confirmar contraseña</label><input class="form-input" type="password" id="d-confpass" placeholder="Confirmar nueva contraseña"></div>
@@ -267,7 +299,15 @@
       <div id="d-pass-status" style="font-size:12px;color:var(--text3);margin-top:6px;">Calculando estado de rotación...</div>
     </div>
 
-    <div style="text-align:right"><button class="btn btn-primary" onclick="saveDatos()">Guardar Cambios</button></div>
+    <!-- REGISTRO DE AUDITORÍA -->
+    <div class="datos-section">
+      <div class="datos-section-title">📜 Registro de Auditoría Local</div>
+      <div style="background:var(--bg3);padding:10px;border-radius:8px;max-height:130px;overflow-y:auto;">
+        <ul id="audit-list" style="list-style:none;padding:0;margin:0;"></ul>
+      </div>
+    </div>
+
+    <div style="text-align:right"><button class="btn btn-primary" onclick="saveDatos()">Guardar Cambios Principales</button></div>
   </div>
 </div>
 
@@ -281,9 +321,7 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Academia</label>
-        <select class="form-select" id="svc-academia">
-          <!-- Se llena dinámicamente -->
-        </select>
+        <select class="form-select" id="svc-academia"></select>
       </div>
       <div class="form-group">
         <label class="form-label">Tipo de servicio</label>
@@ -336,14 +374,14 @@
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="closeModal('modal-academia')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarAcademia()">Guardar Academia</button>
+      <button class="btn btn-primary" onclick="guardarAcademia()">Guardar</button>
     </div>
   </div>
 </div>
 
 <script>
 // =========================================================================
-// >>> TUS CLAVES CONFIGURADAS DE GOOGLE FIREBASE <<<
+// >>> CONFIGURACIÓN FIREBASE <<<
 // =========================================================================
 const firebaseConfig = {
   apiKey: "AIzaSyBBgcNtMuOSCtlsW9laFDYACAnZUujZ_B8",
@@ -368,47 +406,51 @@ const DOC_ID = 'prisma_vault_master';
 let _cryptoKey = null;
 let inactivityTimer = null;
 
-// ─── BLOQUEO AUTOMÁTICO POR INACTIVIDAD (5 MINUTOS) ───
-function resetInactivityTimer() {
-  clearTimeout(inactivityTimer);
-  if (document.getElementById('main-app').style.display === 'block') {
-    inactivityTimer = setTimeout(() => {
-      lockScreenDueToInactivity();
-    }, 5 * 60 * 1000); 
+// ─── AUDITORÍA ───
+function logAudit(action) {
+  if (!config.auditLog) config.auditLog = [];
+  config.auditLog.unshift({ time: new Date().toLocaleString(), action });
+  if (config.auditLog.length > 15) config.auditLog.pop();
+  renderAudit();
+}
+function renderAudit() {
+  const ul = document.getElementById('audit-list');
+  if (ul && config.auditLog) {
+    ul.innerHTML = config.auditLog.map(l => `<li style="font-size:12px;margin-bottom:6px;color:var(--text2);border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px;">[${l.time}] <strong style="color:var(--text)">${l.action}</strong></li>`).join('');
   }
 }
 
+// ─── BLOQUEO AUTOMÁTICO POR INACTIVIDAD (5 MIN) ───
+function resetInactivityTimer() {
+  clearTimeout(inactivityTimer);
+  if (document.getElementById('main-app').style.display === 'block') {
+    inactivityTimer = setTimeout(() => { lockScreenDueToInactivity(); }, 5 * 60 * 1000); 
+  }
+}
 function lockScreenDueToInactivity() {
   _cryptoKey = null;
   document.getElementById('main-app').style.display = 'none';
   document.getElementById('main-nav').style.display = 'none';
   document.getElementById('lock-screen').style.display = 'flex';
   document.getElementById('lock-pass').value = '';
+  document.getElementById('lock-pin').value = '';
   document.getElementById('lock-msg').style.color = '#ffbe0b';
-  document.getElementById('lock-msg').textContent = 'Bloqueado por inactividad (5 min)';
+  document.getElementById('lock-msg').textContent = '🔒 Bloqueado automáticamente por inactividad (5 min)';
 }
-
-['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
-  window.addEventListener(evt, resetInactivityTimer);
-});
+['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => { window.addEventListener(evt, resetInactivityTimer); });
 
 // ─── CRIPTOGRAFÍA AES-256-GCM ───
 async function derivarClave(password, salt) {
   const enc = new TextEncoder();
   const keyMat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' },
-    keyMat, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
-  );
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' }, keyMat, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 }
-
 async function cifrar(data, key) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const enc = new TextEncoder();
   const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify(data)));
   return { iv: Array.from(iv), ct: Array.from(new Uint8Array(ct)) };
 }
-
 async function descifrar(payload, key) {
   const iv = new Uint8Array(payload.iv);
   const ct = new Uint8Array(payload.ct);
@@ -416,67 +458,112 @@ async function descifrar(payload, key) {
   return JSON.parse(new TextDecoder().decode(pt));
 }
 
-// ─── GUARDADO Y SINCRONIZACIÓN EN LA NUBE ───
+// ─── GUARDADO Y NUBE ───
 async function guardarTodo() {
   if (!_cryptoKey) return;
   const data = { servicios, catalogo, academias, datos, config };
   const payload = await cifrar(data, _cryptoKey);
   const salt = localStorage.getItem('fl_salt') || '';
-  
   localStorage.setItem('fl_cifrado', JSON.stringify(payload));
   
   if (db) {
     try {
-      await db.collection('prisma_data').doc(DOC_ID).set({
-        payload: JSON.stringify(payload),
-        salt: salt,
-        updatedAt: new Date().toISOString()
-      });
+      await db.collection('prisma_data').doc(DOC_ID).set({ payload: JSON.stringify(payload), salt: salt, updatedAt: new Date().toISOString() });
       const el = document.getElementById('save-text');
-      if (el) { el.textContent = 'Nube sincronizada ☁️'; }
-    } catch(err) {
-      console.error("Error al sincronizar con Firebase:", err);
-    }
+      if (el) el.textContent = 'Nube sincronizada ☁️';
+      logAudit('Copia de seguridad en la nube exitosa');
+    } catch(err) { console.error("Error nube:", err); }
+  }
+}
+function save() { guardarTodo(); }
+
+// ─── GESTIÓN DE PIN Y LOGIN ───
+window.onload = () => {
+  if (localStorage.getItem('fl_pin_locked')) {
+    toggleLoginMode('pin');
+    document.getElementById('btn-switch-pin').style.display = 'block';
+  }
+};
+function toggleLoginMode(mode) {
+  if (mode === 'pin') {
+    document.getElementById('login-standard').style.display = 'none';
+    document.getElementById('login-pin').style.display = 'block';
+    document.getElementById('lock-pin').focus();
+  } else {
+    document.getElementById('login-pin').style.display = 'none';
+    document.getElementById('login-standard').style.display = 'block';
+    document.getElementById('lock-pass').focus();
+  }
+}
+async function setupPIN() {
+  const pin = document.getElementById('d-pin-setup').value;
+  const masterPass = document.getElementById('d-pin-master').value;
+  if (pin.length !== 4) { alert('El PIN debe tener 4 dígitos exactos.'); return; }
+  if (!masterPass) { alert('Ingresa tu contraseña maestra para confirmar.'); return; }
+  try {
+    const saltBytes = new Uint8Array(localStorage.getItem('fl_salt').split(',').map(Number));
+    // Comprobar que la contraseña maestra es correcta derivando la clave y probando desencriptar
+    const testKey = await derivarClave(masterPass, saltBytes);
+    await descifrar(JSON.parse(localStorage.getItem('fl_cifrado')), testKey); // Si falla lanza error
+    
+    // Contraseña correcta: cifrar la contraseña con el PIN
+    const pinKey = await derivarClave(pin, saltBytes);
+    const lockedPass = await cifrar({ pass: masterPass }, pinKey);
+    localStorage.setItem('fl_pin_locked', JSON.stringify(lockedPass));
+    
+    logAudit('PIN de acceso rápido configurado');
+    save();
+    alert('¡PIN configurado correctamente! Ahora puedes entrar más rápido.');
+    document.getElementById('d-pin-setup').value = '';
+    document.getElementById('d-pin-master').value = '';
+    document.getElementById('btn-switch-pin').style.display = 'block';
+  } catch (e) {
+    alert('Contraseña maestra incorrecta, no se pudo crear el PIN.');
+  }
+}
+async function loginWithPIN() {
+  const pin = document.getElementById('lock-pin').value;
+  const msgEl = document.getElementById('lock-msg');
+  try {
+    const saltBytes = new Uint8Array(localStorage.getItem('fl_salt').split(',').map(Number));
+    const pinKey = await derivarClave(pin, saltBytes);
+    const lockedPass = JSON.parse(localStorage.getItem('fl_pin_locked'));
+    const decrypted = await descifrar(lockedPass, pinKey);
+    document.getElementById('lock-pass').value = decrypted.pass;
+    lockAction();
+  } catch (e) {
+    msgEl.style.color = '#ff4d6d';
+    msgEl.textContent = 'PIN incorrecto.';
+    document.getElementById('lock-pin').value = '';
   }
 }
 
-function save() { guardarTodo(); }
-
-// ─── ACCESO & DESBLOQUEO ───
 async function lockAction() {
   const pass = document.getElementById('lock-pass').value;
   const msgEl = document.getElementById('lock-msg');
   if (!pass) { msgEl.style.color = '#ff4d6d'; msgEl.textContent = 'Ingresa tu contraseña.'; return; }
 
   try {
-    let rawSalt = null;
-    let storedPayload = null;
-
+    let rawSalt = null; let storedPayload = null;
     if (db) {
       try {
         const docSnap = await db.collection('prisma_data').doc(DOC_ID).get();
         if (docSnap.exists) {
-          const cloudData = docSnap.data();
-          storedPayload = JSON.parse(cloudData.payload);
-          rawSalt = cloudData.salt;
+          storedPayload = JSON.parse(docSnap.data().payload);
+          rawSalt = docSnap.data().salt;
           localStorage.setItem('fl_salt', rawSalt);
         }
-      } catch(e) {
-        console.warn("No se pudo leer de la nube, usando local", e);
-      }
+      } catch(e) { console.warn("Usando local"); }
     }
-
     if (!storedPayload) {
       const localStored = localStorage.getItem('fl_cifrado');
       if (localStored) storedPayload = JSON.parse(localStored);
       rawSalt = localStorage.getItem('fl_salt');
     }
-
     if (!rawSalt) {
       rawSalt = Array.from(crypto.getRandomValues(new Uint8Array(16))).join(',');
       localStorage.setItem('fl_salt', rawSalt);
     }
-
     const saltBytes = new Uint8Array(rawSalt.split(',').map(Number));
     const key = await derivarClave(pass, saltBytes);
 
@@ -485,53 +572,63 @@ async function lockAction() {
         const plain = await descifrar(storedPayload, key);
         servicios = plain.servicios || [];
         catalogo = plain.catalogo || [];
-        academias = plain.academias || [
-          {id: 1, nombre: 'Academia 1', nit: '', contacto: ''},
-          {id: 2, nombre: 'Academia 2', nit: '', contacto: ''},
-          {id: 3, nombre: 'Academia 3', nit: '', contacto: ''}
-        ];
+        academias = plain.academias || [];
         datos = plain.datos || {};
-        config = plain.config || { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null, estado: 'Pendiente de Pago', academia: 'Todas' };
+        config = plain.config || { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null, estado: 'Pendiente de Pago', academia: 'Todas', auditLog: [] };
         _cryptoKey = key;
 
-        // Validar política de rotación de 30 días
-        if (!config.passwordChangedAt) {
-          config.passwordChangedAt = new Date().toISOString();
-          guardarTodo();
-        } else {
+        if (!config.passwordChangedAt) { config.passwordChangedAt = new Date().toISOString(); guardarTodo(); } 
+        else {
           const diasTranscurridos = (new Date() - new Date(config.passwordChangedAt)) / (1000 * 60 * 60 * 24);
           if (diasTranscurridos >= 30) {
-            setTimeout(() => {
-              alert("🔒 Alerta de Seguridad: Han pasado 30 días o más desde tu último cambio de contraseña. Por favor, actualízala en la pestaña 'Mis datos'.");
-            }, 500);
+            setTimeout(() => { alert("🔒 Alerta de Seguridad: Han pasado 30 días o más desde tu último cambio de contraseña. Por favor, actualízala en 'Mis datos'."); }, 500);
           }
         }
-
+        logAudit('Inicio de sesión exitoso');
         desbloquear();
       } catch (err) {
-        msgEl.style.color = '#ff4d6d';
-        msgEl.textContent = 'Contraseña incorrecta.';
-        document.getElementById('lock-pass').value = '';
+        msgEl.style.color = '#ff4d6d'; msgEl.textContent = 'Contraseña incorrecta.'; document.getElementById('lock-pass').value = '';
       }
     } else {
-      _cryptoKey = key;
-      config.passwordChangedAt = new Date().toISOString();
-      await guardarTodo();
-      desbloquear();
+      _cryptoKey = key; config.passwordChangedAt = new Date().toISOString(); await guardarTodo(); desbloquear();
     }
-  } catch (err) {
-    msgEl.style.color = '#ff4d6d';
-    msgEl.textContent = 'Error: ' + err.message;
-  }
+  } catch (err) { msgEl.style.color = '#ff4d6d'; msgEl.textContent = 'Error: ' + err.message; }
 }
 
 function desbloquear() {
   document.getElementById('lock-screen').style.display = 'none';
   document.getElementById('main-nav').style.display = 'flex';
   document.getElementById('main-app').style.display = 'block';
-  renderAcademias();
-  renderCalendar();
-  resetInactivityTimer();
+  renderAcademias(); renderCalendar(); resetInactivityTimer(); renderAudit();
+}
+
+// ─── ACCIÓN BOTÓN FLOTANTE Y LOGOTIPO ───
+function fabGlobalAction() {
+  if (document.getElementById('page-factura').classList.contains('active')) {
+    window.print();
+    logAudit('Factura impresa / Exportada a PDF');
+  } else {
+    exportarJSON();
+    logAudit('Backup JSON local descargado manualmente');
+  }
+}
+
+function handleLogoUpload(event) {
+  const file = event.target.files[0];
+  if(file) {
+    if(file.size > 800 * 1024) { alert("La imagen es muy pesada. Intenta usar una menor a 800KB."); return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      datos['d-logo'] = e.target.result;
+      document.getElementById('logo-preview').src = e.target.result;
+      document.getElementById('logo-preview').style.display = 'block';
+      saveDatosLocales();
+      save();
+      logAudit('Logotipo actualizado');
+      alert('Logo cargado. Lo verás en tu próxima factura.');
+    }
+    reader.readAsDataURL(file);
+  }
 }
 
 function exportarJSON() {
@@ -539,48 +636,36 @@ function exportarJSON() {
   cifrar({ servicios, catalogo, academias, datos, config }, _cryptoKey).then(payload => {
     const meta = { version: 1, fecha: new Date().toISOString(), datos: payload };
     const blob = new Blob([JSON.stringify(meta, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `PrismaTI_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `PrismaTI_backup_${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(a.href);
   });
 }
 
 // ─── ESTADO & LÓGICA DE INTERFAZ ───
-let servicios = [];
-let catalogo = [
-  { id: 1, nombre: 'Soporte remoto L1/L2', tarifa: 80000, tipo: 'Soporte técnico', desc: 'Atención a usuarios' },
-  { id: 2, nombre: 'Consultoría TI & Seguridad', tarifa: 120000, tipo: 'Asesoría', desc: 'Revisión técnica' }
-];
-let academias = [];
-let datos = {};
-let config = { num: '001', iva: 0, ret: 0, notas: '', passwordChangedAt: null, estado: 'Pendiente de Pago', academia: 'Todas' };
-let currentDate = new Date();
-let currentYear = currentDate.getFullYear();
-let currentMonth = currentDate.getMonth();
-let selectedDate = null;
-let editCatId = null;
-let editAcaId = null;
+let servicios = []; let catalogo = []; let academias = []; let datos = {}; let config = {};
+let currentDate = new Date(); let currentYear = currentDate.getFullYear(); let currentMonth = currentDate.getMonth();
+let selectedDate = null; let editCatId = null; let editAcaId = null;
 
 function showPage(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if (el) el.classList.add('active');
+  
+  // Cambia el ícono del botón flotante
+  const fab = document.getElementById('fab-action');
+  fab.innerHTML = (name === 'factura') ? '🖨️' : '💾';
+  fab.title = (name === 'factura') ? 'Imprimir Factura' : 'Descargar Backup';
+
   if (name === 'resumen') { populateResMonth(); renderResumen(); }
   if (name === 'catalogo') renderCatalogo();
   if (name === 'factura') { populateMonthSelect('inv-month'); loadConfig(); renderFactura(); }
   if (name === 'datos') loadDatos();
 }
 
-function tagClass(t) {
-  if (t === 'Soporte técnico') return 'tag-soporte';
-  if (t === 'Asesoría') return 'tag-asesoria';
-  return 'tag-otro';
-}
+function tagClass(t) { return (t === 'Soporte técnico') ? 'tag-soporte' : (t === 'Asesoría') ? 'tag-asesoria' : 'tag-otro'; }
 
-// ─── GESTIÓN DE ACADEMIAS DINÁMICAS ───
+// ─── GESTIÓN DE ACADEMIAS ───
 function renderAcademias() {
   document.getElementById('academias-list').innerHTML = academias.map(a => `
     <div style="background:var(--bg3);padding:12px;border:1px solid var(--border);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
@@ -592,98 +677,46 @@ function renderAcademias() {
         <button class="btn btn-secondary btn-sm" onclick="openAcademiaModal(${a.id})">Editar</button>
         <button class="btn btn-danger btn-sm" onclick="eliminarAcademia(${a.id})">✕</button>
       </div>
-    </div>
-  `).join('');
-  
-  if(academias.length === 0) {
-    document.getElementById('academias-list').innerHTML = '<div class="empty" style="padding:1rem">No tienes academias registradas.</div>';
-  }
-  
+    </div>`).join('');
+  if(academias.length === 0) document.getElementById('academias-list').innerHTML = '<div class="empty" style="padding:1rem">No tienes academias registradas.</div>';
   actualizarSelectoresAcademia();
 }
-
 function openAcademiaModal(id) {
-  editAcaId = id || null;
-  const a = id ? academias.find(x => x.id === id) : null;
+  editAcaId = id || null; const a = id ? academias.find(x => x.id === id) : null;
   document.getElementById('aca-modal-title').textContent = a ? 'Editar Academia' : 'Nueva Academia';
-  document.getElementById('aca-nombre').value = a ? a.nombre : '';
-  document.getElementById('aca-nit').value = a ? a.nit : '';
-  document.getElementById('aca-contacto').value = a ? a.contacto : '';
+  document.getElementById('aca-nombre').value = a ? a.nombre : ''; document.getElementById('aca-nit').value = a ? a.nit : ''; document.getElementById('aca-contacto').value = a ? a.contacto : '';
   openModal('modal-academia');
 }
-
 function guardarAcademia() {
-  const nombre = document.getElementById('aca-nombre').value.trim();
-  if (!nombre) { alert("El nombre es obligatorio"); return; }
-  
-  const nit = document.getElementById('aca-nit').value.trim();
-  const contacto = document.getElementById('aca-contacto').value.trim();
-  
+  const nombre = document.getElementById('aca-nombre').value.trim(); if (!nombre) return;
+  const nit = document.getElementById('aca-nit').value.trim(); const contacto = document.getElementById('aca-contacto').value.trim();
   if (editAcaId) {
-    const idx = academias.findIndex(x => x.id === editAcaId);
-    const nombreAntiguo = academias[idx].nombre;
+    const idx = academias.findIndex(x => x.id === editAcaId); const nombreAntiguo = academias[idx].nombre;
     academias[idx] = { ...academias[idx], nombre, nit, contacto };
-    
-    // Si cambias el nombre, actualizamos el historial de servicios para que no se pierdan
-    servicios.forEach(s => {
-      if (s.academia === nombreAntiguo) s.academia = nombre;
-    });
-  } else {
-    academias.push({ id: Date.now(), nombre, nit, contacto });
-  }
-  
-  save(); 
-  renderAcademias(); 
-  closeModal('modal-academia');
-  
-  // Actualizar vistas si están abiertas
+    servicios.forEach(s => { if (s.academia === nombreAntiguo) s.academia = nombre; });
+    logAudit(`Academia editada: ${nombre}`);
+  } else { academias.push({ id: Date.now(), nombre, nit, contacto }); logAudit(`Nueva academia creada: ${nombre}`); }
+  save(); renderAcademias(); closeModal('modal-academia');
   if (document.getElementById('page-resumen').classList.contains('active')) renderResumen();
   if (document.getElementById('page-factura').classList.contains('active')) renderFactura();
 }
-
 function eliminarAcademia(id) {
-  if (confirm('¿Estás seguro de eliminar esta academia? Sus servicios se mantendrán, pero deberás editarlos.')) {
-    academias = academias.filter(x => x.id !== id);
-    save();
-    renderAcademias();
-  }
+  if (confirm('¿Eliminar academia? Sus servicios se mantendrán, pero deberás editarlos.')) { academias = academias.filter(x => x.id !== id); logAudit('Academia eliminada'); save(); renderAcademias(); }
 }
-
 function actualizarSelectoresAcademia() {
   const opciones = academias.map(a => `<option value="${a.nombre}">${a.nombre}</option>`).join('');
-  
-  const svcSel = document.getElementById('svc-academia');
-  if (svcSel) svcSel.innerHTML = opciones || '<option value="">Sin academias</option>';
-  
-  const resSel = document.getElementById('res-academia');
-  if (resSel) {
-    const val = resSel.value;
-    resSel.innerHTML = `<option value="Todas">Todas las academias</option>` + opciones;
-    resSel.value = val || 'Todas';
-  }
-  
-  const invSel = document.getElementById('inv-academia');
-  if (invSel) {
-    const val = invSel.value;
-    invSel.innerHTML = `<option value="Todas">Todas (Consolidado)</option>` + opciones;
-    invSel.value = val || 'Todas';
-  }
+  const svcSel = document.getElementById('svc-academia'); if (svcSel) svcSel.innerHTML = opciones || '<option value="">Sin academias</option>';
+  const resSel = document.getElementById('res-academia'); if (resSel) { const val = resSel.value; resSel.innerHTML = `<option value="Todas">Todas las academias</option>` + opciones; resSel.value = val || 'Todas'; }
+  const invSel = document.getElementById('inv-academia'); if (invSel) { const val = invSel.value; invSel.innerHTML = `<option value="Todas">Todas (Consolidado)</option>` + opciones; invSel.value = val || 'Todas'; }
 }
 
 // ─── CALENDARIO Y SERVICIOS ───
 function renderCalendar() {
-  const grid = document.getElementById('cal-grid');
-  document.getElementById('cal-title').textContent = `${MESES[currentMonth]} ${currentYear}`;
-  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const daysInPrev = new Date(currentYear, currentMonth, 0).getDate();
-  const today = new Date();
-  const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-  const monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
-  const totalMes = monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0);
-  
-  document.getElementById('cal-subtitle').textContent = `${monthSvcs.length} servicios · Total: $${totalMes.toLocaleString('es-CO')}`;
-  grid.innerHTML = '';
+  const grid = document.getElementById('cal-grid'); document.getElementById('cal-title').textContent = `${MESES[currentMonth]} ${currentYear}`;
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay(); const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate(); const daysInPrev = new Date(currentYear, currentMonth, 0).getDate();
+  const today = new Date(); const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+  const monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey)); const totalMes = monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0);
+  document.getElementById('cal-subtitle').textContent = `${monthSvcs.length} servicios · Total: $${totalMes.toLocaleString('es-CO')}`; grid.innerHTML = '';
   
   let cells = [];
   for (let i = firstDay - 1; i >= 0; i--) cells.push({ day: daysInPrev - i, cur: false });
@@ -691,139 +724,61 @@ function renderCalendar() {
   while (cells.length % 7 !== 0) cells.push({ day: cells.length - firstDay - daysInMonth + 1, cur: false });
 
   cells.forEach(cell => {
-    const div = document.createElement('div');
-    div.className = 'cal-day' + (!cell.cur ? ' other-month' : '');
+    const div = document.createElement('div'); div.className = 'cal-day' + (!cell.cur ? ' other-month' : '');
     const dateStr = cell.cur ? `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}` : null;
-    if (cell.cur && today.getFullYear() === currentYear && today.getMonth() === currentMonth && today.getDate() === cell.day) {
-      div.classList.add('today');
-    }
+    if (cell.cur && today.getFullYear() === currentYear && today.getMonth() === currentMonth && today.getDate() === cell.day) div.classList.add('today');
     const daySvcs = dateStr ? servicios.filter(s => s.fecha === dateStr) : [];
-    if (daySvcs.length > 0) {
-      div.classList.add('has-services');
-      const total = daySvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0);
-      div.innerHTML = `<div class="cal-day-num">${cell.day}</div><div class="cal-dot"></div><div class="cal-total">$${(total / 1000).toFixed(0)}k</div>`;
-    } else {
-      div.innerHTML = `<div class="cal-day-num">${cell.day}</div>`;
-    }
+    if (daySvcs.length > 0) { div.classList.add('has-services'); const total = daySvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0); div.innerHTML = `<div class="cal-day-num">${cell.day}</div><div class="cal-dot"></div><div class="cal-total">$${(total / 1000).toFixed(0)}k</div>`; } 
+    else { div.innerHTML = `<div class="cal-day-num">${cell.day}</div>`; }
     if (cell.cur && dateStr) div.onclick = () => openServicioModal(dateStr, cell.day);
     grid.appendChild(div);
   });
 }
-
-function changeMonth(dir) {
-  currentMonth += dir;
-  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-  renderCalendar();
-}
-
+function changeMonth(dir) { currentMonth += dir; if (currentMonth > 11) { currentMonth = 0; currentYear++; } if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderCalendar(); }
 function openServicioModal(dateStr, day) {
-  if (academias.length === 0) {
-    alert("¡Primero debes crear al menos una academia en la pestaña 'Mis datos'!");
-    return;
-  }
-  selectedDate = dateStr;
-  document.getElementById('modal-fecha-titulo').textContent = `Servicios del ${day} de ${MESES[currentMonth]}`;
-  populateTarifaSelect();
-  renderServiciosDelDia(dateStr);
-  document.getElementById('svc-desc').value = '';
-  document.getElementById('svc-tarifa').value = '';
-  document.getElementById('svc-cant').value = 1;
-  openModal('modal-servicio');
+  if (academias.length === 0) { alert("¡Primero debes crear al menos una academia en la pestaña 'Mis datos'!"); return; }
+  selectedDate = dateStr; document.getElementById('modal-fecha-titulo').textContent = `Servicios del ${day} de ${MESES[currentMonth]}`;
+  populateTarifaSelect(); renderServiciosDelDia(dateStr);
+  document.getElementById('svc-desc').value = ''; document.getElementById('svc-tarifa').value = ''; document.getElementById('svc-cant').value = 1; openModal('modal-servicio');
 }
-
 function populateTarifaSelect() {
-  const sel = document.getElementById('svc-tarifa-select');
-  sel.innerHTML = '<option value="">-- Seleccionar del catálogo --</option>';
-  catalogo.forEach(c => {
-    const o = document.createElement('option');
-    o.value = c.tarifa; o.dataset.tipo = c.tipo; o.dataset.nombre = c.nombre;
-    o.textContent = `[${c.tipo}] ${c.nombre} — $${c.tarifa.toLocaleString('es-CO')}`;
-    sel.appendChild(o);
-  });
+  const sel = document.getElementById('svc-tarifa-select'); sel.innerHTML = '<option value="">-- Seleccionar --</option>';
+  catalogo.forEach(c => { const o = document.createElement('option'); o.value = c.tarifa; o.dataset.tipo = c.tipo; o.dataset.nombre = c.nombre; o.textContent = `[${c.tipo}] ${c.nombre} — $${c.tarifa.toLocaleString('es-CO')}`; sel.appendChild(o); });
 }
-
 function onTarifaSelect() {
-  const sel = document.getElementById('svc-tarifa-select');
-  const opt = sel.options[sel.selectedIndex];
-  if (opt.value) {
-    document.getElementById('svc-tarifa').value = opt.value;
-    const tipoSel = document.getElementById('svc-tipo');
-    for (let o of tipoSel.options) {
-      if (o.value === opt.dataset.tipo) { tipoSel.value = o.value; break; }
-    }
-    if (!document.getElementById('svc-desc').value) {
-      document.getElementById('svc-desc').value = opt.dataset.nombre;
-    }
+  const sel = document.getElementById('svc-tarifa-select'); const opt = sel.options[sel.selectedIndex];
+  if (opt.value) { document.getElementById('svc-tarifa').value = opt.value; const tipoSel = document.getElementById('svc-tipo'); for (let o of tipoSel.options) { if (o.value === opt.dataset.tipo) { tipoSel.value = o.value; break; } }
+    if (!document.getElementById('svc-desc').value) { document.getElementById('svc-desc').value = opt.dataset.nombre; }
   }
 }
-
 function agregarServicio() {
-  const academia = document.getElementById('svc-academia').value;
-  const tipo = document.getElementById('svc-tipo').value;
-  const desc = document.getElementById('svc-desc').value.trim();
-  const tarifa = parseFloat(document.getElementById('svc-tarifa').value) || 0;
-  const cant = parseInt(document.getElementById('svc-cant').value) || 1;
-  if (!desc || !tarifa || !academia) { alert('Completa todos los campos obligatorios'); return; }
-  
-  servicios.push({ id: Date.now(), fecha: selectedDate, academia, tipo, desc, tarifa, cant });
-  save();
-  renderServiciosDelDia(selectedDate);
-  renderCalendar();
-  document.getElementById('svc-desc').value = '';
-  document.getElementById('svc-tarifa').value = '';
-  document.getElementById('svc-cant').value = 1;
+  const academia = document.getElementById('svc-academia').value; const tipo = document.getElementById('svc-tipo').value; const desc = document.getElementById('svc-desc').value.trim(); const tarifa = parseFloat(document.getElementById('svc-tarifa').value) || 0; const cant = parseInt(document.getElementById('svc-cant').value) || 1;
+  if (!desc || !tarifa || !academia) { alert('Completa todos los campos'); return; }
+  servicios.push({ id: Date.now(), fecha: selectedDate, academia, tipo, desc, tarifa, cant }); save(); renderServiciosDelDia(selectedDate); renderCalendar();
+  document.getElementById('svc-desc').value = ''; document.getElementById('svc-tarifa').value = ''; document.getElementById('svc-cant').value = 1;
 }
-
 function renderServiciosDelDia(dateStr) {
-  const cont = document.getElementById('servicios-del-dia');
-  const daySvcs = servicios.filter(s => s.fecha === dateStr);
-  if (!daySvcs.length) {
-    cont.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:1rem">Sin servicios este día</div>';
-    return;
-  }
+  const cont = document.getElementById('servicios-del-dia'); const daySvcs = servicios.filter(s => s.fecha === dateStr);
+  if (!daySvcs.length) { cont.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:1rem">Sin servicios este día</div>'; return; }
   const total = daySvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0);
-  cont.innerHTML = `
-    <div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:0.5rem">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Total del día: <strong style="color:var(--accent)">$${total.toLocaleString('es-CO')}</strong></div>
-      ${daySvcs.map(s => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
-          <div><span class="tag tag-academia">${s.academia}</span> <span class="tag ${tagClass(s.tipo)}">${s.tipo}</span> <span style="margin-left:6px">${s.desc}</span></div>           <div style="display:flex;align-items:center;gap:8px">             <span style="color:var(--accent)">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</span>
-            <button class="btn btn-danger btn-sm" onclick="eliminarServicio(${s.id})">✕</button>
-          </div>
-        </div>`).join('')}
-    </div>`;
+  cont.innerHTML = `<div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:0.5rem"><div style="font-size:12px;color:var(--text3);margin-bottom:8px">Total del día: <strong style="color:var(--accent)">$${total.toLocaleString('es-CO')}</strong></div>
+    ${daySvcs.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <div><span class="tag tag-academia">${s.academia}</span> <span class="tag ${tagClass(s.tipo)}">${s.tipo}</span> <span style="margin-left:6px">${s.desc}</span></div>         <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--accent)">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</span><button class="btn btn-danger btn-sm" onclick="eliminarServicio(${s.id})">✕</button></div>
+      </div>`).join('')}</div>`;
 }
+function eliminarServicio(id) { servicios = servicios.filter(s => s.id !== id); save(); renderServiciosDelDia(selectedDate); renderCalendar(); }
 
-function eliminarServicio(id) {
-  servicios = servicios.filter(s => s.id !== id);
-  save();
-  renderServiciosDelDia(selectedDate);
-  renderCalendar();
-}
-
+// ─── RESUMEN Y EXPORTACIÓN ───
 function populateResMonth() {
-  const sel = document.getElementById('res-month');
-  const now = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+  const sel = document.getElementById('res-month'); const now = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
   const months = [...new Set([now, ...servicios.map(s => s.fecha.substring(0, 7))])].sort().reverse();
-  sel.innerHTML = months.map(m => {
-    const [y, mo] = m.split('-');
-    return `<option value="${m}">${MESES[parseInt(mo) - 1]} ${y}</option>`;
-  }).join('');
+  sel.innerHTML = months.map(m => { const [y, mo] = m.split('-'); return `<option value="${m}">${MESES[parseInt(mo) - 1]} ${y}</option>`; }).join('');
 }
-
 function renderResumen() {
   const monthKey = document.getElementById('res-month').value || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
   const filtroAcademia = document.getElementById('res-academia').value;
-  
-  let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
-  if (filtroAcademia && filtroAcademia !== 'Todas') {
-    monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia);
-  }
-
-  const total = monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0);
-  const diasActivos = [...new Set(monthSvcs.map(s => s.fecha))].length;
-  const prom = diasActivos ? Math.round(total / diasActivos) : 0;
+  let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey)); if (filtroAcademia && filtroAcademia !== 'Todas') { monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia); }
+  const total = monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0); const diasActivos = [...new Set(monthSvcs.map(s => s.fecha))].length; const prom = diasActivos ? Math.round(total / diasActivos) : 0;
   
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-label">Servicios</div><div class="stat-value">${monthSvcs.length}</div></div>
@@ -831,177 +786,71 @@ function renderResumen() {
     <div class="stat-card"><div class="stat-label">Promedio/día</div><div class="stat-value">$${prom.toLocaleString('es-CO')}</div><div class="stat-sub">${diasActivos} días laborados</div></div>`;
     
   const tbody = document.getElementById('res-tbody');
-  if (!monthSvcs.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Sin servicios registrados para esta selección</td></tr>'; return; }
-  tbody.innerHTML = monthSvcs.sort((a, b) => a.fecha.localeCompare(b.fecha)).map(s => `
-    <tr>
-      <td>${s.fecha}</td>
-      <td><span class="tag tag-academia">${s.academia}</span></td>
-      <td><span class="tag ${tagClass(s.tipo)}">${s.tipo}</span></td>
-      <td>${s.desc}</td><td>${s.cant}</td>
-      <td>$${s.tarifa.toLocaleString('es-CO')}</td>
-      <td>$${(s.tarifa * s.cant).toLocaleString('es-CO')}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="eliminarServicioGlobal(${s.id})">✕</button></td>
-    </tr>`).join('');
+  if (!monthSvcs.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Sin servicios</td></tr>'; return; }
+  tbody.innerHTML = monthSvcs.sort((a, b) => a.fecha.localeCompare(b.fecha)).map(s => `<tr><td>${s.fecha}</td><td><span class="tag tag-academia">${s.academia}</span></td><td><span class="tag ${tagClass(s.tipo)}">${s.tipo}</span></td><td>${s.desc}</td><td>${s.cant}</td><td>$${s.tarifa.toLocaleString('es-CO')}</td><td>$${(s.tarifa * s.cant).toLocaleString('es-CO')}</td><td><button class="btn btn-danger btn-sm" onclick="eliminarServicioGlobal(${s.id})">✕</button></td></tr>`).join('');
 }
-
-function eliminarServicioGlobal(id) {
-  servicios = servicios.filter(s => s.id !== id);
-  save(); renderResumen(); renderCalendar();
-}
-
+function eliminarServicioGlobal(id) { servicios = servicios.filter(s => s.id !== id); save(); renderResumen(); renderCalendar(); }
 function exportarExcel() {
-  const monthKey = document.getElementById('res-month').value || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-  const filtroAcademia = document.getElementById('res-academia').value || 'Todas';
-  const [y, mo] = monthKey.split('-');
-  
-  let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
-  if (filtroAcademia !== 'Todas') {
-    monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia);
-  }
-  if (!monthSvcs.length) { alert('No hay servicios para exportar con este filtro'); return; }
-  
+  const monthKey = document.getElementById('res-month').value || `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`; const filtroAcademia = document.getElementById('res-academia').value || 'Todas'; const [y, mo] = monthKey.split('-');
+  let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey)); if (filtroAcademia !== 'Todas') { monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia); }
+  if (!monthSvcs.length) { alert('No hay servicios para exportar'); return; }
   const wb = XLSX.utils.book_new();
   const rows = [
-    [`PRISMA TI — SERVICIOS (${filtroAcademia.toUpperCase()})`],
-    ['Mes:', `${MESES[parseInt(mo) - 1]} ${y}`],
-    [],
+    [`PRISMA TI — SERVICIOS (${filtroAcademia.toUpperCase()})`], ['Mes:', `${MESES[parseInt(mo) - 1]} ${y}`], [],
     ['Fecha', 'Academia', 'Tipo', 'Descripción', 'Cantidad', 'Tarifa (COP)', 'Total (COP)'],
-    ...monthSvcs.map(s => [s.fecha, s.academia, s.tipo, s.desc, s.cant, s.tarifa, s.tarifa * s.cant]),
-    [],
+    ...monthSvcs.map(s => [s.fecha, s.academia, s.tipo, s.desc, s.cant, s.tarifa, s.tarifa * s.cant]), [],
     ['', '', '', '', '', 'TOTAL:', monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0)]
   ];
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, `Servicios`);
-  XLSX.writeFile(wb, `PrismaTI_${filtroAcademia}_${MESES[parseInt(mo) - 1]}_${y}.xlsx`);
+  const ws = XLSX.utils.aoa_to_sheet(rows); XLSX.utils.book_append_sheet(wb, ws, `Servicios`); XLSX.writeFile(wb, `PrismaTI_${filtroAcademia}_${MESES[parseInt(mo) - 1]}_${y}.xlsx`); logAudit('Excel generado');
 }
 
-function openCatModal(id) {
-  editCatId = id || null;
-  const item = id ? catalogo.find(c => c.id === id) : null;
-  document.getElementById('cat-modal-title').textContent = item ? 'Editar' : 'Nuevo';
-  document.getElementById('cat-nombre').value = item ? item.nombre : '';
-  document.getElementById('cat-tarifa').value = item ? item.tarifa : '';
-  document.getElementById('cat-tipo').value = item ? item.tipo : 'Soporte técnico';
-  openModal('modal-catalogo');
-}
-
-function guardarCatalogo() {
-  const nombre = document.getElementById('cat-nombre').value.trim();
-  const tarifa = parseFloat(document.getElementById('cat-tarifa').value) || 0;
-  const tipo = document.getElementById('cat-tipo').value;
-  if (!nombre) return;
-  if (editCatId) {
-    const idx = catalogo.findIndex(c => c.id === editCatId);
-    catalogo[idx] = { ...catalogo[idx], nombre, tarifa, tipo };
-  } else {
-    catalogo.push({ id: Date.now(), nombre, tarifa, tipo });
-  }
+// ─── CATÁLOGO ───
+function openCatModal(id) { editCatId = id || null; const item = id ? catalogo.find(c => c.id === id) : null; document.getElementById('cat-modal-title').textContent = item ? 'Editar' : 'Nuevo'; document.getElementById('cat-nombre').value = item ? item.nombre : ''; document.getElementById('cat-tarifa').value = item ? item.tarifa : ''; document.getElementById('cat-tipo').value = item ? item.tipo : 'Soporte técnico'; openModal('modal-catalogo'); }
+function guardarCatalogo() { const nombre = document.getElementById('cat-nombre').value.trim(); const tarifa = parseFloat(document.getElementById('cat-tarifa').value) || 0; const tipo = document.getElementById('cat-tipo').value; if (!nombre) return;
+  if (editCatId) { const idx = catalogo.findIndex(c => c.id === editCatId); catalogo[idx] = { ...catalogo[idx], nombre, tarifa, tipo }; } else { catalogo.push({ id: Date.now(), nombre, tarifa, tipo }); }
   save(); renderCatalogo(); populateTarifaSelect(); closeModal('modal-catalogo');
 }
-
 function renderCatalogo() {
-  const grid = document.getElementById('cat-grid');
-  grid.innerHTML = catalogo.map(c => `
-    <div class="cat-card">
-      <div><span class="tag ${tagClass(c.tipo)}">${c.tipo}</span></div>
-      <div class="cat-name">${c.nombre}</div>
-      <div class="cat-price">$${c.tarifa.toLocaleString('es-CO')}</div>
-      <div class="cat-actions">
-        <button class="btn btn-secondary btn-sm" onclick="openCatModal(${c.id})">Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="eliminarCatalogo(${c.id})">Eliminar</button>
-      </div>
-    </div>`).join('');
+  document.getElementById('cat-grid').innerHTML = catalogo.map(c => `<div class="cat-card"><div><span class="tag ${tagClass(c.tipo)}">${c.tipo}</span></div><div class="cat-name">${c.nombre}</div><div class="cat-price">$${c.tarifa.toLocaleString('es-CO')}</div><div class="cat-actions"><button class="btn btn-secondary btn-sm" onclick="openCatModal(${c.id})">Editar</button> <button class="btn btn-danger btn-sm" onclick="eliminarCatalogo(${c.id})">Eliminar</button></div></div>`).join('');
 }
+function eliminarCatalogo(id) { catalogo = catalogo.filter(c => c.id !== id); save(); renderCatalogo(); populateTarifaSelect(); }
 
-function eliminarCatalogo(id) {
-  catalogo = catalogo.filter(c => c.id !== id);
-  save(); renderCatalogo(); populateTarifaSelect();
-}
-
+// ─── FACTURA (CON LOGOTIPO) ───
 function populateMonthSelect(id) {
-  const sel = document.getElementById(id);
-  const now = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-  const months = [...new Set([now, ...servicios.map(s => s.fecha.substring(0, 7))])].sort().reverse();
-  sel.innerHTML = months.map(m => {
-    const [y, mo] = m.split('-');
-    return `<option value="${m}">${MESES[parseInt(mo) - 1]} ${y}</option>`;
-  }).join('');
+  const sel = document.getElementById(id); const now = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`; const months = [...new Set([now, ...servicios.map(s => s.fecha.substring(0, 7))])].sort().reverse();
+  sel.innerHTML = months.map(m => { const [y, mo] = m.split('-'); return `<option value="${m}">${MESES[parseInt(mo) - 1]} ${y}</option>`; }).join('');
 }
-
 function loadConfig() {
-  document.getElementById('inv-num').value = config.num || '001';
-  document.getElementById('inv-iva').value = config.iva || 0;
-  document.getElementById('inv-ret').value = config.ret || 0;
-  document.getElementById('inv-notas').value = config.notas || '';
-  document.getElementById('inv-fecha').value = config.fecha || new Date().toISOString().split('T')[0];
-  document.getElementById('inv-limite').value = config.limite || '';
-  if(document.getElementById('inv-academia')) document.getElementById('inv-academia').value = config.academia || 'Todas';
-  if(document.getElementById('inv-estado')) document.getElementById('inv-estado').value = config.estado || 'Pendiente de Pago';
+  document.getElementById('inv-num').value = config.num || '001'; document.getElementById('inv-iva').value = config.iva || 0; document.getElementById('inv-ret').value = config.ret || 0; document.getElementById('inv-notas').value = config.notas || ''; document.getElementById('inv-fecha').value = config.fecha || new Date().toISOString().split('T')[0]; document.getElementById('inv-limite').value = config.limite || '';
+  if(document.getElementById('inv-academia')) document.getElementById('inv-academia').value = config.academia || 'Todas'; if(document.getElementById('inv-estado')) document.getElementById('inv-estado').value = config.estado || 'Pendiente de Pago';
 }
-
 function saveConfig() {
-  config = {
-    num: document.getElementById('inv-num').value,
-    iva: document.getElementById('inv-iva').value,
-    ret: document.getElementById('inv-ret').value,
-    notas: document.getElementById('inv-notas').value,
-    fecha: document.getElementById('inv-fecha').value,
-    limite: document.getElementById('inv-limite').value,
-    academia: document.getElementById('inv-academia').value,
-    estado: document.getElementById('inv-estado').value,
-    passwordChangedAt: config.passwordChangedAt
-  };
-  save();
+  config = { num: document.getElementById('inv-num').value, iva: document.getElementById('inv-iva').value, ret: document.getElementById('inv-ret').value, notas: document.getElementById('inv-notas').value, fecha: document.getElementById('inv-fecha').value, limite: document.getElementById('inv-limite').value, academia: document.getElementById('inv-academia').value, estado: document.getElementById('inv-estado').value, passwordChangedAt: config.passwordChangedAt, auditLog: config.auditLog }; save();
 }
-
 function renderFactura() {
-  const sel = document.getElementById('inv-month');
-  if (!sel || !sel.value) return;
-  const monthKey = sel.value;
-  const filtroAcademia = document.getElementById('inv-academia').value;
-  const estadoFactura = document.getElementById('inv-estado').value;
-  const [y, mo] = monthKey.split('-');
+  const sel = document.getElementById('inv-month'); if (!sel || !sel.value) return; const monthKey = sel.value; const filtroAcademia = document.getElementById('inv-academia').value; const estadoFactura = document.getElementById('inv-estado').value; const [y, mo] = monthKey.split('-');
+  let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey)); if (filtroAcademia && filtroAcademia !== 'Todas') { monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia); }
+  const subtotal = monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0); const iva = parseFloat(document.getElementById('inv-iva').value) || 0; const ret = parseFloat(document.getElementById('inv-ret').value) || 0; const total = subtotal + (subtotal * iva / 100) - (subtotal * ret / 100); const d = datos;
 
-  let monthSvcs = servicios.filter(s => s.fecha && s.fecha.startsWith(monthKey));
-  if (filtroAcademia && filtroAcademia !== 'Todas') {
-    monthSvcs = monthSvcs.filter(s => s.academia === filtroAcademia);
-  }
+  let clienteNombre = 'Consolidado General'; let clienteNit = '';
+  if (filtroAcademia && filtroAcademia !== 'Todas') { const infoAcademia = academias.find(a => a.nombre === filtroAcademia); if (infoAcademia) { clienteNombre = infoAcademia.nombre; clienteNit = infoAcademia.nit; } else { clienteNombre = filtroAcademia; } }
 
-  const subtotal = monthSvcs.reduce((a, s) => a + (s.tarifa * s.cant), 0);
-  const iva = parseFloat(document.getElementById('inv-iva').value) || 0;
-  const ret = parseFloat(document.getElementById('inv-ret').value) || 0;
-  const total = subtotal + (subtotal * iva / 100) - (subtotal * ret / 100);
-  const d = datos;
-
-  // Lógica Dinámica para mostrar el Nombre y NIT en la factura
-  let clienteNombre = 'Consolidado General';
-  let clienteNit = '';
+  let badgeColor = '#ffbe0b'; if(estadoFactura === 'Pagada') badgeColor = '#00d4aa'; if(estadoFactura === 'Vencida') badgeColor = '#ff4d6d';
   
-  if (filtroAcademia && filtroAcademia !== 'Todas') {
-    const infoAcademia = academias.find(a => a.nombre === filtroAcademia);
-    if (infoAcademia) {
-      clienteNombre = infoAcademia.nombre;
-      clienteNit = infoAcademia.nit;
-    } else {
-      clienteNombre = filtroAcademia;
-    }
-  }
-
-  let badgeColor = '#ffbe0b';
-  if(estadoFactura === 'Pagada') badgeColor = '#00d4aa';
-  if(estadoFactura === 'Vencida') badgeColor = '#ff4d6d';
+  const logoHtml = d['d-logo'] ? `<img src="${d['d-logo']}" style="max-height:55px; margin-bottom:8px;">` : '';
 
   document.getElementById('factura-preview').innerHTML = `
   <div class="invoice-preview">
     <div class="inv-band">
       <div>
+        ${logoHtml}
         <div class="inv-band-title">Prisma TI</div>
         <div class="inv-band-sub">Soporte Técnico &amp; Asesoría</div>
-        <div class="inv-meta-row"><span>N° Factura:</span><span>#${document.getElementById('inv-num').value || '001'}</span></div>
+        <div class="inv-meta-row" style="margin-top:10px;"><span>N° Factura:</span><span>#${document.getElementById('inv-num').value || '001'}</span></div>
         <div class="inv-meta-row"><span>Periodo:</span><span>${MESES[parseInt(mo) - 1]} ${y}</span></div>
         <div class="inv-meta-row"><span>Estado:</span><span style="color:${badgeColor};font-weight:700">${estadoFactura}</span></div>
       </div>
-      <div>
+      <div style="text-align:right">
         <div style="font-size:10px;color:#00e5c0;font-weight:700">DIRIGIDO A:</div>
         <div style="font-weight:700;color:#fff">${clienteNombre}</div>
         <div style="font-size:12px;color:#7a9ab8">${clienteNit ? 'NIT: ' + clienteNit : ''}</div>
@@ -1011,13 +860,7 @@ function renderFactura() {
     <div class="inv-body">
       <table class="inv-table">
         <thead><tr><th>#</th><th>Academia / Servicio</th><th>Tarifa</th><th>Cant.</th><th>Total</th></tr></thead>
-        <tbody>${monthSvcs.map((s, i) => `
-          <tr>
-            <td>${i + 1}</td>
-            <td>[<strong>${s.academia}</strong>]${s.desc} <span style="font-size:11px;color:#7a9ab8">(${s.fecha})</span></td>             <td>$${s.tarifa.toLocaleString('es-CO')}</td>
-            <td>${s.cant}</td>             <td style="color:#00e5c0;font-weight:700">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</td>
-          </tr>`).join('')}
-        </tbody>
+        <tbody>${monthSvcs.map((s, i) => `<tr><td>${i + 1}</td><td>[<strong>${s.academia}</strong>]${s.desc} <span style="font-size:11px;color:#7a9ab8">(${s.fecha})</span></td><td>$${s.tarifa.toLocaleString('es-CO')}</td><td>${s.cant}</td><td style="color:#00e5c0;font-weight:700">$${(s.tarifa * s.cant).toLocaleString('es-CO')}</td></tr>`).join('')}</tbody>
       </table>
       <div class="inv-bottom">
         <div>
@@ -1033,69 +876,36 @@ function renderFactura() {
   </div>`;
 }
 
+// ─── DATOS Y SEGURIDAD ───
 function loadDatos() {
-  ['d-nombre', 'd-nit', 'd-tel', 'd-email', 'd-dir', 'd-banco'].forEach(k => {
-    const el = document.getElementById(k);
-    if (el) el.value = datos[k] || '';
-  });
-  
-  document.getElementById('d-newpass').value = '';
-  document.getElementById('d-confpass').value = '';
+  ['d-nombre', 'd-nit', 'd-tel', 'd-email', 'd-dir', 'd-banco'].forEach(k => { const el = document.getElementById(k); if (el) el.value = datos[k] || ''; });
+  if(datos['d-logo']) { document.getElementById('logo-preview').src = datos['d-logo']; document.getElementById('logo-preview').style.display = 'block'; }
+  document.getElementById('d-newpass').value = ''; document.getElementById('d-confpass').value = '';
   
   const statusEl = document.getElementById('d-pass-status');
   if (config.passwordChangedAt) {
-    const dias = Math.floor((new Date() - new Date(config.passwordChangedAt)) / (1000 * 60 * 60 * 24));
-    const restantes = Math.max(0, 30 - dias);
-    if (dias >= 30) {
-      statusEl.innerHTML = `<span style="color:var(--danger)">⚠️ Contraseña vencida (${dias} días desde el último cambio). Actualízala ahora.</span>`;
-    } else {
-      statusEl.innerHTML = `Último cambio de clave hace <strong>${dias} días</strong>. Faltan <strong>${restantes} días</strong> para la rotación obligatoria.`;
-    }
-  } else {
-    statusEl.textContent = 'Sin registro previo de rotación de clave.';
-  }
+    const dias = Math.floor((new Date() - new Date(config.passwordChangedAt)) / (1000 * 60 * 60 * 24)); const restantes = Math.max(0, 30 - dias);
+    if (dias >= 30) { statusEl.innerHTML = `<span style="color:var(--danger)">⚠️ Contraseña vencida (${dias} días). Actualízala ahora.</span>`; } else { statusEl.innerHTML = `Último cambio hace <strong>${dias} días</strong>. Faltan <strong>${restantes} días</strong> para rotación.`; }
+  } else { statusEl.textContent = 'Sin registro previo de rotación de clave.'; }
+  renderAudit();
 }
-
-function saveDatosLocales() {
-  ['d-nombre', 'd-nit', 'd-tel', 'd-email', 'd-dir', 'd-banco'].forEach(k => {
-    const el = document.getElementById(k);
-    if (el) datos[k] = el.value;
-  });
-}
+function saveDatosLocales() { ['d-nombre', 'd-nit', 'd-tel', 'd-email', 'd-dir', 'd-banco'].forEach(k => { const el = document.getElementById(k); if (el) datos[k] = el.value; }); }
 
 async function saveDatos() {
   saveDatosLocales();
-
-  const p1 = document.getElementById('d-newpass').value;
-  const p2 = document.getElementById('d-confpass').value;
-
+  const p1 = document.getElementById('d-newpass').value; const p2 = document.getElementById('d-confpass').value;
   if (p1) {
-    if (p1 !== p2) {
-      alert('Las nuevas contraseñas no coinciden.');
-      return;
-    }
+    if (p1 !== p2) { alert('Las contraseñas no coinciden.'); return; }
     try {
-      const rawSalt = Array.from(crypto.getRandomValues(new Uint8Array(16))).join(',');
-      localStorage.setItem('fl_salt', rawSalt);
-      const saltBytes = new Uint8Array(rawSalt.split(',').map(Number));
-      const newKey = await derivarClave(p1, saltBytes);
-      
-      config.passwordChangedAt = new Date().toISOString();
-      _cryptoKey = newKey;
-      await guardarTodo();
-      alert('¡Datos y contraseña maestra actualizados con éxito! Ciclo de 30 días reiniciado.');
-      loadDatos();
-      return;
-    } catch(e) {
-      console.error(e);
-      alert('Error al actualizar la contraseña.');
-      return;
-    }
+      const rawSalt = Array.from(crypto.getRandomValues(new Uint8Array(16))).join(','); localStorage.setItem('fl_salt', rawSalt);
+      const saltBytes = new Uint8Array(rawSalt.split(',').map(Number)); const newKey = await derivarClave(p1, saltBytes);
+      config.passwordChangedAt = new Date().toISOString(); _cryptoKey = newKey; 
+      logAudit('Contraseña maestra rotada/cambiada');
+      await guardarTodo(); alert('¡Contraseña actualizada con éxito! Ciclo de 30 días reiniciado.'); loadDatos(); return;
+    } catch(e) { console.error(e); alert('Error al actualizar.'); return; }
   }
-
-  save();
-  alert('Guardado con éxito!');
-  loadDatos();
+  logAudit('Datos de facturación actualizados');
+  save(); alert('Guardado con éxito!'); loadDatos();
 }
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
