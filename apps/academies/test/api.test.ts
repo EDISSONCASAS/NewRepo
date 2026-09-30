@@ -26,7 +26,7 @@ describe("password authentication protocol", () => {
     expect(payload.passwordProof).toMatch(/^[A-Za-z0-9_-]{43}$/u);
   });
 
-  it("sends a derived password hash, never the raw password, when creating a viewer", async () => {
+  it("sends a derived password hash and the selected data-entry permission when creating a user", async () => {
     const protocolHeader = { "x-paddock-password-protocol": "pbkdf2-hmac-v1" };
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({
@@ -38,18 +38,20 @@ describe("password authentication protocol", () => {
           username: "viewer",
           role: "viewer",
           active: 1,
+          can_write: true,
           academy_ids: ["academy-1"],
         },
       }), { status: 201, headers: protocolHeader }));
     vi.stubGlobal("fetch", fetchMock);
 
     await api.me();
-    await api.createUser("viewer", "Another-long-test-password", ["academy-1"]);
+    await api.createUser("viewer", "Another-long-test-password", ["academy-1"], true);
 
     const [, request] = fetchMock.mock.calls[1] as [string, RequestInit];
     const payload = JSON.parse(String(request.body)) as Record<string, unknown>;
     expect(payload).toHaveProperty("passwordHash");
     expect(payload).not.toHaveProperty("password");
+    expect(payload.canWrite).toBe(true);
     expect(payload.passwordHash).toMatch(/^pbkdf2\$310000\$SHA-256\$/u);
   });
 
@@ -72,7 +74,7 @@ describe("password authentication protocol", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await api.login("admin", password);
-    await api.createUser("viewer", password, ["academy-1"]);
+    await api.createUser("viewer", password, ["academy-1"], false);
 
     const loginRequest = fetchMock.mock.calls[1]?.[1] as RequestInit;
     const createRequest = fetchMock.mock.calls[2]?.[1] as RequestInit;

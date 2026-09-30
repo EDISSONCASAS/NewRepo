@@ -1,0 +1,2 @@
+ALTER TABLE users
+ADD COLUMN can_write INTEGER NOT NULL DEFAULT 0 CHECK (can_write IN (0, 1));

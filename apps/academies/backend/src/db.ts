@@ -39,6 +39,7 @@ export class AcademyStore {
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL CHECK (role IN ('admin', 'viewer')),
         active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+        can_write INTEGER NOT NULL DEFAULT 0 CHECK (can_write IN (0, 1)),
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
       CREATE TABLE IF NOT EXISTS academies (
@@ -82,6 +83,10 @@ export class AcademyStore {
         ON student_records(academy_id, date DESC, created_at DESC);
       CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
     `);
+    const userColumns = this.db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+    if (!userColumns.some((column) => column.name === "can_write")) {
+      this.db.exec("ALTER TABLE users ADD COLUMN can_write INTEGER NOT NULL DEFAULT 0 CHECK (can_write IN (0, 1))");
+    }
   }
 
   userCount(): number {
@@ -97,14 +102,14 @@ export class AcademyStore {
 
   getUserByUsername(username: string): (User & { password_hash: string }) | undefined {
     return this.db.prepare(
-      "SELECT id, username, password_hash, role, active FROM users WHERE username = ? COLLATE NOCASE",
+      "SELECT id, username, password_hash, role, active, can_write FROM users WHERE username = ? COLLATE NOCASE",
     ).get(username) as (User & { password_hash: string }) | undefined;
   }
 
   getSession(tokenHash: string, now: number): User | undefined {
     this.db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(now);
     return this.db.prepare(`
-      SELECT users.id, users.username, users.role, users.active
+      SELECT users.id, users.username, users.role, users.active, users.can_write
       FROM sessions JOIN users ON users.id = sessions.user_id
       WHERE sessions.token_hash = ? AND sessions.expires_at > ? AND users.active = 1
     `).get(tokenHash, now) as User | undefined;
@@ -141,26 +146,36 @@ export class AcademyStore {
     return Boolean(this.db.prepare("SELECT 1 FROM academies WHERE id = ?").get(id));
   }
 
-  listUsers(): Array<User & { academy_ids: string[] }> {
+  canAccessAcademy(user: User, academyId: string): boolean {
+    return user.role === "admin" || Boolean(this.db.prepare(
+      "SELECT 1 FROM memberships WHERE user_id = ? AND academy_id = ?",
+    ).get(user.id, academyId));
+  }
+
+  listUsers(): Array<Omit<User, "can_write"> & { can_write: boolean; academy_ids: string[] }> {
     const users = this.db.prepare(
-      "SELECT id, username, role, active FROM users WHERE role = 'viewer' ORDER BY username COLLATE NOCASE",
+      "SELECT id, username, role, active, can_write FROM users WHERE role = 'viewer' ORDER BY username COLLATE NOCASE",
     ).all() as unknown as User[];
     const academyIds = this.db.prepare(
       "SELECT academy_id FROM memberships WHERE user_id = ? ORDER BY academy_id",
     );
     return users.map((user) => ({
-      ...user,
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      active: user.active,
       academy_ids: (academyIds.all(user.id) as Array<{ academy_id: string }>).map((row) => row.academy_id),
+      can_write: user.can_write === 1,
     }));
   }
 
-  createViewer(username: string, passwordHash: string, academyIds: string[]): User {
+  createViewer(username: string, passwordHash: string, academyIds: string[], canWrite: boolean): User {
     const id = randomUUID();
     this.db.exec("BEGIN");
     try {
       this.db.prepare(
-        "INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, 'viewer')",
-      ).run(id, username, passwordHash);
+        "INSERT INTO users (id, username, password_hash, role, can_write) VALUES (?, ?, ?, 'viewer', ?)",
+      ).run(id, username, passwordHash, Number(canWrite));
       const addMembership = this.db.prepare(
         "INSERT INTO memberships (user_id, academy_id) VALUES (?, ?)",
       );
@@ -170,19 +185,20 @@ export class AcademyStore {
       this.db.exec("ROLLBACK");
       throw error;
     }
-    return this.db.prepare("SELECT id, username, role, active FROM users WHERE id = ?")
+    return this.db.prepare("SELECT id, username, role, active, can_write FROM users WHERE id = ?")
       .get(id) as unknown as User;
   }
 
   updateViewer(
     id: string,
-    options: { academyIds: string[]; active: boolean; passwordHash?: string },
+    options: { academyIds: string[]; active: boolean; canWrite: boolean; passwordHash?: string },
   ): boolean {
     const existing = this.db.prepare("SELECT id FROM users WHERE id = ? AND role = 'viewer'").get(id);
     if (!existing) return false;
     this.db.exec("BEGIN");
     try {
-      this.db.prepare("UPDATE users SET active = ? WHERE id = ?").run(Number(options.active), id);
+      this.db.prepare("UPDATE users SET active = ?, can_write = ? WHERE id = ?")
+        .run(Number(options.active), Number(options.canWrite), id);
       this.db.prepare("DELETE FROM memberships WHERE user_id = ?").run(id);
       const addMembership = this.db.prepare(
         "INSERT INTO memberships (user_id, academy_id) VALUES (?, ?)",
@@ -211,7 +227,7 @@ export class AcademyStore {
   }): { records: StudentRecord[]; total: number } {
     const clauses: string[] = [];
     const parameters: Array<string | number> = [];
-    if (options.user.role === "viewer") {
+    if (options.user.role !== "admin") {
       clauses.push("student_records.academy_id IN (SELECT academy_id FROM memberships WHERE user_id = ?)");
       parameters.push(options.user.id);
     }
@@ -261,7 +277,7 @@ export class AcademyStore {
     this.db.prepare(
       `INSERT INTO student_records (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`,
     ).run(...values);
-    return this.getRecord(id, { id: "", username: "", role: "admin", active: 1 })!;
+    return this.getRecord(id, { id: "", username: "", role: "admin", active: 1, can_write: 1 })!;
   }
 
   updateRecord(id: string, record: StudentRecordInput): boolean {

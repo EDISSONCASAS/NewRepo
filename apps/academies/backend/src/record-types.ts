@@ -5,6 +5,7 @@ export interface User {
   username: string;
   role: Role;
   active: number;
+  can_write: number;
 }
 
 export interface Academy {

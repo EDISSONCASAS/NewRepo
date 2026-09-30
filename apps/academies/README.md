@@ -48,8 +48,9 @@ Abre <http://127.0.0.1:5180>. Vite reenvía `/api` al backend local en `127.0.0.
 
 ## Uso
 
-- El administrador global crea academias y cuentas viewer; también puede cambiar las academias asignadas, reiniciar contraseñas y revocar/reactivar accesos.
-- Los viewers solo consultan las academias asignadas. El servidor filtra los resultados y rechaza operaciones de escritura aunque se invoquen directamente por API.
+- El administrador global crea academias y usuarios; también puede asignar permisos de solo lectura o de carga y edición, cambiar las academias asignadas, reiniciar contraseñas y revocar/reactivar accesos.
+- Los usuarios de solo lectura consultan las academias asignadas. Los usuarios de carga pueden crear e importar registros y editar los existentes de sus academias, pero no borrarlos ni administrar usuarios, academias o permisos. El servidor valida estos permisos también en la API.
+- En Cloudflare, la migración `0002_user_data_entry.sql` añade el permiso nuevo con valor desactivado para todos los usuarios existentes; el administrador puede habilitarlo al editar cada acceso.
 - Los formularios incluyen fecha, orden, asesor, identificación, nombre, trámite, categoría, forma/estado de pago, costos médicos y observaciones.
 - El importador acepta CSV y XLSX de hasta 5 MB. Los XLSX se convierten a CSV en el navegador para no agotar el límite de CPU del plan gratuito; las fórmulas no se importan. Selecciona primero la academia, revisa filas válidas/duplicadas/con errores y confirma la importación. Los duplicados no se sobrescriben.
 - Se reconocen encabezados como `FECHA`, `NUMERO DE ORDEN`, `ASESOR`, `TIPO DE DOCUMENTO`, `NOMBRES COMPLETOS`, `NUMERO DE DOCUMENTO`, `TIPO DE TRAMITE`, `CATEGORIA`, `FORMA DE PAGO ALUMNO`, `ESTADO PAGO CRC`, `QPL`, `COSTO LAMINA`, `COSTO QPL`, `VALOR A CONSIGNAR`, `COSTO EXAM. MEDICO` y `OBSERVACION`. Las columnas no reconocidas se ignoran; las fórmulas XLSX no se importan.

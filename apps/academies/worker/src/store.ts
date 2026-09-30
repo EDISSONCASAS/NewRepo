@@ -67,7 +67,7 @@ export async function getUserByUsername(
   username: string,
 ): Promise<(User & { password_hash: string }) | undefined> {
   return (await db.prepare(`
-    SELECT id, username, password_hash, role, active
+    SELECT id, username, password_hash, role, active, can_write
     FROM users WHERE username = ? COLLATE NOCASE
   `).bind(username).first<User & { password_hash: string }>()) ?? undefined;
 }
@@ -87,7 +87,7 @@ export async function replaceUserPasswordHash(
 export async function getSession(db: D1Database, tokenHash: string, now: number): Promise<User | undefined> {
   await db.prepare("DELETE FROM sessions WHERE expires_at <= ?").bind(now).run();
   return (await db.prepare(`
-    SELECT users.id, users.username, users.role, users.active
+    SELECT users.id, users.username, users.role, users.active, users.can_write
     FROM sessions JOIN users ON users.id = sessions.user_id
     WHERE sessions.token_hash = ? AND sessions.expires_at > ? AND users.active = 1
   `).bind(tokenHash, now).first<User>()) ?? undefined;
@@ -138,9 +138,15 @@ export async function ensureAcademyIds(db: D1Database, ids: string[]): Promise<b
   return true;
 }
 
+export async function canAccessAcademy(db: D1Database, user: User, academyId: string): Promise<boolean> {
+  return user.role === "admin" || Boolean(await db.prepare(
+    "SELECT 1 FROM memberships WHERE user_id = ? AND academy_id = ?",
+  ).bind(user.id, academyId).first());
+}
+
 export async function listUsers(db: D1Database): Promise<AcademyUser[]> {
   const users = await db.prepare(`
-    SELECT id, username, role, active FROM users
+    SELECT id, username, role, active, can_write FROM users
     WHERE role = 'viewer' ORDER BY username COLLATE NOCASE
   `).all<User & { active: number }>();
   const memberships = await db.prepare(
@@ -153,8 +159,11 @@ export async function listUsers(db: D1Database): Promise<AcademyUser[]> {
     academyIds.set(row.user_id, ids);
   }
   return users.results.map((user) => ({
-    ...user,
+    id: user.id,
+    username: user.username,
+    role: user.role,
     active: user.active,
+    can_write: user.can_write === 1,
     academy_ids: academyIds.get(user.id) ?? [],
   }));
 }
@@ -164,19 +173,20 @@ export async function createViewer(
   username: string,
   passwordHash: string,
   academyIds: string[],
+  canWrite: boolean,
 ): Promise<User> {
   const id = crypto.randomUUID();
   const statements = [
     db.prepare(
-      "INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, 'viewer')",
-    ).bind(id, username, passwordHash),
+      "INSERT INTO users (id, username, password_hash, role, can_write) VALUES (?, ?, ?, 'viewer', ?)",
+    ).bind(id, username, passwordHash, Number(canWrite)),
     ...academyIds.map((academyId) => db.prepare(
       "INSERT INTO memberships (user_id, academy_id) VALUES (?, ?)",
     ).bind(id, academyId)),
   ];
   await db.batch(statements);
   const user = await db.prepare(
-    "SELECT id, username, role, active FROM users WHERE id = ?",
+    "SELECT id, username, role, active, can_write FROM users WHERE id = ?",
   ).bind(id).first<User>();
   if (!user) throw new Error("No se pudo crear el usuario.");
   return user;
@@ -185,14 +195,15 @@ export async function createViewer(
 export async function updateViewer(
   db: D1Database,
   id: string,
-  options: { academyIds: string[]; active: boolean; passwordHash?: string },
+  options: { academyIds: string[]; active: boolean; canWrite: boolean; passwordHash?: string },
 ): Promise<boolean> {
   const existing = await db.prepare(
     "SELECT id FROM users WHERE id = ? AND role = 'viewer'",
   ).bind(id).first();
   if (!existing) return false;
   const statements: D1PreparedStatement[] = [
-    db.prepare("UPDATE users SET active = ? WHERE id = ?").bind(Number(options.active), id),
+    db.prepare("UPDATE users SET active = ?, can_write = ? WHERE id = ?")
+      .bind(Number(options.active), Number(options.canWrite), id),
     db.prepare("DELETE FROM memberships WHERE user_id = ?").bind(id),
     ...options.academyIds.map((academyId) => db.prepare(
       "INSERT INTO memberships (user_id, academy_id) VALUES (?, ?)",
@@ -222,7 +233,7 @@ export async function listRecords(
 ): Promise<{ records: StudentRecord[]; total: number }> {
   const clauses: string[] = [];
   const parameters: Array<string | number> = [];
-  if (options.user.role === "viewer") {
+  if (options.user.role !== "admin") {
     clauses.push(
       "student_records.academy_id IN (SELECT academy_id FROM memberships WHERE user_id = ?)",
     );
@@ -295,6 +306,7 @@ export async function createRecord(
     username: "",
     role: "admin",
     active: 1,
+    can_write: 1,
   });
   if (!created) throw new Error("No se pudo crear el registro.");
   return created;

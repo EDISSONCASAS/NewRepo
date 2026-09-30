@@ -10,8 +10,9 @@ export interface Env {
 
 export type { Academy, Role, StudentRecord, StudentRecordInput, User };
 
-export interface AcademyUser extends User {
+export interface AcademyUser extends Omit<User, "can_write"> {
   active: number;
+  can_write: boolean;
   academy_ids: string[];
 }
 

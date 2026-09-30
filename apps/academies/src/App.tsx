@@ -112,9 +112,9 @@ function RecordForm({ record, academies, onClose, onSave }: {
   </Modal>;
 }
 
-function RecordDetails({ record, admin, onClose, onEdit }: {
+function RecordDetails({ record, canEdit, onClose, onEdit }: {
   record: StudentRecord;
-  admin: boolean;
+  canEdit: boolean;
   onClose: () => void;
   onEdit: () => void;
 }) {
@@ -139,7 +139,7 @@ function RecordDetails({ record, admin, onClose, onEdit }: {
     <div className="record-details"><div className="detail-name"><p className="eyebrow">{record.procedure || "TRÁMITE"} · {record.category || "SIN CATEGORÍA"}</p><h3>{record.full_name}</h3></div>
       <dl className="detail-grid">{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}</dl>
       <div className="detail-observations"><span>Observaciones</span><p>{record.observations || "Sin observaciones"}</p></div>
-      {admin && <footer className="form-actions"><button className="button button-primary" onClick={onEdit}>Editar registro</button></footer>}
+      {canEdit && <footer className="form-actions"><button className="button button-primary" onClick={onEdit}>Editar registro</button></footer>}
     </div>
   </Modal>;
 }
@@ -206,6 +206,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
   const admin = user?.role === "admin";
+  const canWrite = admin || user?.can_write === true;
   const pageSize = 50;
 
   useEffect(() => {
@@ -271,28 +272,31 @@ export default function App() {
     finally { setBusy(false); }
   }
 
-  async function createViewer(event: FormEvent<HTMLFormElement>) {
+  async function saveUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget); setBusy(true);
     const academyIds = form.getAll("academyIds").map(String);
     const password = String(form.get("password") ?? "");
+    const canWrite = form.get("canWrite") === "true";
     try {
       if (editingUser) {
-        await api.updateUser(editingUser.id, academyIds, Boolean(editingUser.active), password);
-        setUsers((current) => current.map((entry) => entry.id === editingUser.id ? { ...entry, academy_ids: academyIds } : entry));
+        await api.updateUser(editingUser.id, academyIds, Boolean(editingUser.active), canWrite, password);
+        setUsers((current) => current.map((entry) => entry.id === editingUser.id
+          ? { ...entry, academy_ids: academyIds, can_write: canWrite }
+          : entry));
         setNotice("Acceso actualizado");
       } else {
-        const result = await api.createUser(String(form.get("username") ?? ""), password, academyIds);
-        setUsers((current) => [...current, result.user]); setNotice("Viewer creado");
+        const result = await api.createUser(String(form.get("username") ?? ""), password, academyIds, canWrite);
+        setUsers((current) => [...current, result.user]); setNotice("Usuario creado");
       }
       setEditingUser(null); setModal(null);
-    } catch (cause) { setNotice(cause instanceof Error ? cause.message : "No se pudo crear el viewer"); }
+    } catch (cause) { setNotice(cause instanceof Error ? cause.message : "No se pudo guardar el usuario"); }
     finally { setBusy(false); }
   }
 
   async function changeViewer(entry: AcademyUser) {
     const active = !entry.active;
     try {
-      await api.updateUser(entry.id, entry.academy_ids, active);
+      await api.updateUser(entry.id, entry.academy_ids, active, entry.can_write);
       setUsers((current) => current.map((candidate) => candidate.id === entry.id ? { ...candidate, active: Number(active) } : candidate));
       setNotice(active ? "Acceso reactivado" : "Acceso revocado y sesiones cerradas");
     } catch (cause) { setNotice(cause instanceof Error ? cause.message : "No se pudo actualizar el acceso"); }
@@ -316,45 +320,47 @@ export default function App() {
     { id: "records", label: "Alumnos y trámites", icon: Gauge },
     { id: "academies", label: "Academias", icon: Building2, adminOnly: true },
     { id: "users", label: "Usuarios", icon: UsersRound, adminOnly: true },
-    { id: "import", label: "Importar datos", icon: FileSpreadsheet, adminOnly: true },
+    { id: "import", label: "Importar datos", icon: FileSpreadsheet },
   ];
-  const visibleNav = nav.filter((item) => !item.adminOnly || admin);
+  const visibleNav = nav.filter((item) =>
+    (!item.adminOnly || admin) && (item.id !== "import" || canWrite),
+  );
 
   return <div className="workspace-shell">
     <aside className={`sidebar ${mobileNav ? "sidebar-open" : ""}`}>
       <a className="side-brand" href="#inicio" onClick={(event) => { event.preventDefault(); setView("records"); }}><span className="brand-mark"><Flag size={17} /></span><span>PADDOCK</span></a>
       <div className="side-kicker">CENTRO DE OPERACIONES</div>
       <nav className="side-nav" aria-label="Navegación principal">{visibleNav.map(({ id, label, icon: Icon }) => <button key={id} className={`nav-item ${view === id ? "nav-active" : ""}`} onClick={() => { setView(id); setMobileNav(false); }}><Icon size={17} /><span>{label}</span></button>)}</nav>
-      <div className="sidebar-bottom"><div className="profile-card"><span className="avatar">{user.username.slice(0, 1).toLocaleUpperCase("es-CO")}</span><span className="profile-copy"><strong>{user.username}</strong><small>{admin ? "Administrador" : "Solo lectura"}</small></span><button className="icon-button profile-logout" aria-label="Cerrar sesión" title="Cerrar sesión" onClick={() => void logout()}><LogOut size={16} /></button></div><div className="privacy-note"><ShieldCheck size={14} /><span>Datos privados<br />por academia</span></div></div>
+      <div className="sidebar-bottom"><div className="profile-card"><span className="avatar">{user.username.slice(0, 1).toLocaleUpperCase("es-CO")}</span><span className="profile-copy"><strong>{user.username}</strong><small>{admin ? "Administrador" : canWrite ? "Carga y edición" : "Solo lectura"}</small></span><button className="icon-button profile-logout" aria-label="Cerrar sesión" title="Cerrar sesión" onClick={() => void logout()}><LogOut size={16} /></button></div><div className="privacy-note"><ShieldCheck size={14} /><span>Datos privados<br />por academia</span></div></div>
     </aside>
     <main className="main-area">
       <header className="topbar"><button className="icon-button mobile-menu" aria-label="Abrir navegación" onClick={() => setMobileNav((value) => !value)}><Menu size={19} /></button><div className="breadcrumbs"><span>PADDOCK</span><span className="crumb-separator">/</span><strong>{visibleNav.find((item) => item.id === view)?.label}</strong></div><div className="topbar-right"><span className="live-indicator"><span /> SISTEMA ACTIVO</span><span className="topbar-user">{user.username.slice(0, 1).toLocaleUpperCase("es-CO")}</span></div></header>
       <div className="page-content">
         {notice && <div className="notice-banner" role="status"><span><Check size={16} />{notice}</span><button className="icon-button" aria-label="Cerrar aviso" onClick={() => setNotice("")}><X size={16} /></button></div>}
         {view === "records" && <>
-          <section className="page-heading"><div><p className="eyebrow">PANEL DE CONTROL <span className="heading-dot">·</span> {formatDate(new Date().toISOString())}</p><h1>Alumnos y trámites</h1><p className="page-subtitle">Consulta y seguimiento de registros por academia.</p></div><div className="heading-actions">{admin && <button className="button button-quiet" onClick={() => setView("import")}><FileSpreadsheet size={16} /> Importar</button>}{admin && <button className="button button-primary" onClick={() => { setEditing(null); setModal("record"); }}><Plus size={17} /> Nuevo alumno</button>}</div></section>
+          <section className="page-heading"><div><p className="eyebrow">PANEL DE CONTROL <span className="heading-dot">·</span> {formatDate(new Date().toISOString())}</p><h1>Alumnos y trámites</h1><p className="page-subtitle">Consulta y seguimiento de registros por academia.</p></div><div className="heading-actions">{canWrite && <button className="button button-quiet" onClick={() => setView("import")}><FileSpreadsheet size={16} /> Importar</button>}{canWrite && <button className="button button-primary" onClick={() => { setEditing(null); setModal("record"); }}><Plus size={17} /> Nuevo alumno</button>}</div></section>
           <section className="metric-strip"><div className="metric-cell"><span className="metric-label">REGISTROS EN VISTA</span><strong>{total.toLocaleString("es-CO")}</strong><small>Coincidencias actuales</small></div><div className="metric-cell"><span className="metric-label">ACADEMIAS</span><strong>{academies.length.toLocaleString("es-CO")}</strong><small>{academyId ? academies.find((a) => a.id === academyId)?.name : "Todas las academias asignadas"}</small></div><div className="metric-cell"><span className="metric-label">PÁGINA</span><strong>{String(page).padStart(2, "0")}<span className="metric-divider">/</span>{String(Math.max(1, Math.ceil(total / pageSize))).padStart(2, "0")}</strong><small>Hasta 50 registros por página</small></div><div className="metric-stamp"><Gauge size={18} /><span>VISTA<br />ACTUALIZADA</span></div></section>
           <section className="records-section"><div className="section-header"><div><h2>Registro de alumnos</h2><p>{total.toLocaleString("es-CO")} resultados encontrados</p></div></div>
             <div className="filter-bar"><label className="search-field"><Search size={17} /><input aria-label="Buscar alumnos" placeholder="Buscar por nombre, documento u orden" value={search} onChange={(event) => { setPage(1); setSearch(event.target.value); }} /><kbd>/</kbd></label>
               {admin && <label className="select-wrap"><span className="sr-only">Filtrar por academia</span><select value={academyId} onChange={(event) => { setPage(1); setAcademyId(event.target.value); }}><option value="">Todas las academias</option>{academies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select><ChevronDown size={14} /></label>}
               <label className="select-wrap"><span className="sr-only">Estado de pago</span><select value={paymentStatus} onChange={(event) => { setPage(1); setPaymentStatus(event.target.value); }}><option value="">Todos los pagos</option><option value="PAGA">Pagado</option><option value="DEBE">Pendiente</option></select><ChevronDown size={14} /></label>
             </div>
-            <div className="table-scroll"><table className="records-table"><thead><tr><th>FECHA</th><th>ALUMNO</th><th>TRÁMITE</th>{admin && <th>ACADEMIA</th>}<th>ESTADO DE PAGO</th><th>VALOR</th>{admin && <th />}</tr></thead><tbody>
-              {records.map((record) => <tr key={record.id}><td className="date-cell">{formatDate(record.date)}<span>Orden {record.order_number || "—"}</span></td><td><button className="person-name" onClick={() => setSelectedRecord(record)}>{record.full_name}</button><span className="person-document">{record.document_type} {record.document_number || "Sin documento"}</span></td><td><strong className="procedure-name">{record.procedure || "Sin trámite"}</strong><span className="person-document">Categoría {record.category || "—"}</span></td>{admin && <td className="academy-cell">{record.academy_name}</td>}<td><span className={`status-badge ${record.payment_crc_status === "PAGA" ? "status-paid" : record.payment_crc_status === "DEBE" ? "status-due" : "status-pending"}`}><span />{record.payment_crc_status === "PAGA" ? "Pagado" : record.payment_crc_status === "DEBE" ? "Pendiente" : "Sin estado"}</span></td><td className="amount-cell">{formatCurrency(record.amount_due)}</td>{admin && <td><button className="icon-button row-action" aria-label={`Editar a ${record.full_name}`} onClick={() => { setEditing({ ...record }); setModal("record"); }}><ArrowUpRight size={16} /></button></td>}</tr>)}
-              {!records.length && <tr><td colSpan={admin ? 7 : 6} className="empty-row">{search || academyId || paymentStatus ? "No hay registros que coincidan con estos filtros." : "Aún no hay registros. Agrega un alumno o importa una hoja."}</td></tr>}
+            <div className="table-scroll"><table className="records-table"><thead><tr><th>FECHA</th><th>ALUMNO</th><th>TRÁMITE</th>{admin && <th>ACADEMIA</th>}<th>ESTADO DE PAGO</th><th>VALOR</th>{canWrite && <th />}</tr></thead><tbody>
+              {records.map((record) => <tr key={record.id}><td className="date-cell">{formatDate(record.date)}<span>Orden {record.order_number || "—"}</span></td><td><button className="person-name" onClick={() => setSelectedRecord(record)}>{record.full_name}</button><span className="person-document">{record.document_type} {record.document_number || "Sin documento"}</span></td><td><strong className="procedure-name">{record.procedure || "Sin trámite"}</strong><span className="person-document">Categoría {record.category || "—"}</span></td>{admin && <td className="academy-cell">{record.academy_name}</td>}<td><span className={`status-badge ${record.payment_crc_status === "PAGA" ? "status-paid" : record.payment_crc_status === "DEBE" ? "status-due" : "status-pending"}`}><span />{record.payment_crc_status === "PAGA" ? "Pagado" : record.payment_crc_status === "DEBE" ? "Pendiente" : "Sin estado"}</span></td><td className="amount-cell">{formatCurrency(record.amount_due)}</td>              {canWrite && <td><button className="icon-button row-action" aria-label={`Editar a ${record.full_name}`} onClick={() => { setEditing({ ...record }); setModal("record"); }}><ArrowUpRight size={16} /></button></td>}</tr>)}
+              {!records.length && <tr><td colSpan={5 + Number(admin) + Number(canWrite)} className="empty-row">{search || academyId || paymentStatus ? "No hay registros que coincidan con estos filtros." : "Aún no hay registros. Agrega un alumno o importa una hoja."}</td></tr>}
             </tbody></table></div>
             <footer className="table-footer"><span>Mostrando {records.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, total)} de {total.toLocaleString("es-CO")}</span><div className="pagination"><button className="button button-quiet" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Anterior</button><span>{page}</span><button className="button button-quiet" disabled={page * pageSize >= total} onClick={() => setPage((value) => value + 1)}>Siguiente</button></div></footer>
           </section>
         </>}
         {view === "academies" && admin && <section className="admin-page"><div className="page-heading"><div><p className="eyebrow">ESTRUCTURA DE LA RED</p><h1>Academias</h1><p className="page-subtitle">Administra los centros y sus registros.</p></div><button className="button button-primary" onClick={() => setModal("academy")}><Plus size={17} /> Añadir academia</button></div><div className="admin-list-heading"><h2>Centros registrados</h2><span>{academies.length} academias</span></div><div className="academy-list">{academies.map((academy, index) => <article className="academy-row" key={academy.id}><span className="academy-index">{String(index + 1).padStart(2, "0")}</span><span className="academy-icon"><Building2 size={18} /></span><div className="academy-info"><strong>{academy.name}</strong><span>{academy.city || "Ubicación no registrada"}</span></div><button className="button button-quiet" onClick={() => { setAcademyId(academy.id); setView("records"); }}>Ver registros<ArrowRight size={15} /></button></article>)}</div>{!academies.length && <div className="empty-panel">Añade la primera academia para comenzar.</div>}</section>}
-        {view === "users" && admin && <section className="admin-page"><div className="page-heading"><div><p className="eyebrow">CONTROL DE ACCESO</p><h1>Usuarios</h1><p className="page-subtitle">Gestiona viewers y el alcance de su acceso.</p></div><button className="button button-primary" onClick={() => { setEditingUser(null); setModal("user"); }}><Plus size={17} /> Crear viewer</button></div><div className="admin-list-heading"><h2>Accesos asignados</h2><span>{users.length} usuarios</span></div><div className="user-list">{users.map((entry) => <article className="user-row" key={entry.id}><span className="avatar user-avatar">{entry.username.slice(0, 1).toLocaleUpperCase("es-CO")}</span><div className="user-info"><strong>{entry.username}</strong><span>{entry.academy_ids.map((id) => academies.find((a) => a.id === id)?.name).filter(Boolean).join(" · ") || "Sin academias"}</span></div><span className={`user-state ${entry.active ? "" : "user-disabled"}`}><span />{entry.active ? "Activo" : "Desactivado"}</span><button className="button button-quiet" onClick={() => { setEditingUser(entry); setModal("user"); }}>Editar acceso</button><button className="button button-quiet" onClick={() => void changeViewer(entry)}>{entry.active ? "Revocar" : "Reactivar"}</button></article>)}</div>{!users.length && <div className="empty-panel">Crea cuentas para dar acceso de solo lectura.</div>}</section>}
-        {view === "import" && admin && <ImportPage academies={academies} onError={setNotice} onImported={(message) => { setNotice(message); setView("records"); refreshRecords(); }} />}
+        {view === "users" && admin && <section className="admin-page"><div className="page-heading"><div><p className="eyebrow">CONTROL DE ACCESO</p><h1>Usuarios</h1><p className="page-subtitle">Gestiona usuarios, permisos y academias asignadas.</p></div><button className="button button-primary" onClick={() => { setEditingUser(null); setModal("user"); }}><Plus size={17} /> Crear usuario</button></div><div className="admin-list-heading"><h2>Accesos asignados</h2><span>{users.length} usuarios</span></div><div className="user-list">{users.map((entry) => <article className="user-row" key={entry.id}><span className="avatar user-avatar">{entry.username.slice(0, 1).toLocaleUpperCase("es-CO")}</span><div className="user-info"><strong>{entry.username}</strong><span>{entry.can_write ? "Carga y edición" : "Solo lectura"} · {entry.academy_ids.map((id) => academies.find((a) => a.id === id)?.name).filter(Boolean).join(" · ") || "Sin academias"}</span></div><span className={`user-state ${entry.active ? "" : "user-disabled"}`}><span />{entry.active ? "Activo" : "Desactivado"}</span><button className="button button-quiet" onClick={() => { setEditingUser(entry); setModal("user"); }}>Editar acceso</button><button className="button button-quiet" onClick={() => void changeViewer(entry)}>{entry.active ? "Revocar" : "Reactivar"}</button></article>)}</div>{!users.length && <div className="empty-panel">Crea cuentas y asigna permisos de consulta o carga.</div>}</section>}
+        {view === "import" && canWrite && <ImportPage academies={academies} onError={setNotice} onImported={(message) => { setNotice(message); setView("records"); refreshRecords(); }} />}
       </div>
     </main>
     {mobileNav && <button className="mobile-scrim" aria-label="Cerrar navegación" onClick={() => setMobileNav(false)} />}
     {modal === "record" && academies.length > 0 && <RecordForm record={editing ?? emptyRecord(academyId || academies[0]!.id)} academies={academies} onClose={() => { setModal(null); setEditing(null); }} onSave={saveRecord} />}
-    {selectedRecord && <RecordDetails record={selectedRecord} admin={Boolean(admin)} onClose={() => setSelectedRecord(null)} onEdit={() => { setEditing({ ...selectedRecord }); setSelectedRecord(null); setModal("record"); }} />}
+    {selectedRecord && <RecordDetails record={selectedRecord} canEdit={canWrite} onClose={() => setSelectedRecord(null)} onEdit={() => { setEditing({ ...selectedRecord }); setSelectedRecord(null); setModal("record"); }} />}
     {modal === "academy" && <Modal title="Añadir academia" onClose={() => setModal(null)}><form className="data-form compact-form" onSubmit={(event) => void createAcademy(event)}><label>Nombre de la academia<input autoFocus name="name" required maxLength={120} placeholder="Academia Central" /></label><label>Ciudad o sede<input name="city" maxLength={120} placeholder="Bogotá" /></label><footer className="form-actions"><button type="button" className="button button-quiet" onClick={() => setModal(null)}>Cancelar</button><button className="button button-primary" disabled={busy}>{busy ? "Creando..." : "Crear academia"}</button></footer></form></Modal>}
-    {modal === "user" && <Modal title={editingUser ? "Editar acceso" : "Crear viewer"} onClose={() => { setModal(null); setEditingUser(null); }}><form className="data-form compact-form" onSubmit={(event) => void createViewer(event)}><p className="modal-description">El viewer podrá consultar los datos de las academias asignadas, pero no modificarlos.</p>{editingUser ? <><label>Nombre de usuario<input value={editingUser.username} readOnly /></label><label>Nueva contraseña <span className="field-hint">Déjala vacía para conservar la actual.</span><input name="password" type="password" minLength={12} maxLength={256} autoComplete="new-password" /></label></> : <><label>Nombre de usuario<input autoFocus name="username" required minLength={3} maxLength={100} autoComplete="off" /></label><label>Contraseña temporal<input name="password" type="password" required minLength={12} maxLength={256} autoComplete="new-password" /><span className="field-hint">Mínimo 12 caracteres. Entrégala por un canal seguro.</span></label></>}<fieldset className="academy-checks"><legend>Academias permitidas</legend>{academies.map((academy) => <label key={academy.id}><input type="checkbox" name="academyIds" value={academy.id} defaultChecked={editingUser?.academy_ids.includes(academy.id)} />{academy.name}</label>)}</fieldset><footer className="form-actions"><button type="button" className="button button-quiet" onClick={() => { setModal(null); setEditingUser(null); }}>Cancelar</button><button className="button button-primary" disabled={busy || !academies.length}>{busy ? "Guardando..." : editingUser ? "Guardar acceso" : "Crear cuenta"}</button></footer></form></Modal>}
+    {modal === "user" && <Modal title={editingUser ? "Editar acceso" : "Crear usuario"} onClose={() => { setModal(null); setEditingUser(null); }}><form className="data-form compact-form" onSubmit={(event) => void saveUser(event)}><p className="modal-description">Elige si la cuenta solo consulta o también registra y edita alumnos en las academias asignadas.</p>{editingUser ? <><label>Nombre de usuario<input value={editingUser.username} readOnly /></label><label>Nueva contraseña <span className="field-hint">Déjala vacía para conservar la actual.</span><input name="password" type="password" minLength={12} maxLength={256} autoComplete="new-password" /></label></> : <><label>Nombre de usuario<input autoFocus name="username" required minLength={3} maxLength={100} autoComplete="off" /></label><label>Contraseña temporal<input name="password" type="password" required minLength={12} maxLength={256} autoComplete="new-password" /><span className="field-hint">Mínimo 12 caracteres. Entrégala por un canal seguro.</span></label></>}<label>Permiso<select name="canWrite" defaultValue={editingUser?.can_write ? "true" : "false"}><option value="false">Solo lectura</option><option value="true">Carga y edición de alumnos</option></select></label><fieldset className="academy-checks"><legend>Academias permitidas</legend>{academies.map((academy) => <label key={academy.id}><input type="checkbox" name="academyIds" value={academy.id} defaultChecked={editingUser?.academy_ids.includes(academy.id)} />{academy.name}</label>)}</fieldset><footer className="form-actions"><button type="button" className="button button-quiet" onClick={() => { setModal(null); setEditingUser(null); }}>Cancelar</button><button className="button button-primary" disabled={busy || !academies.length}>{busy ? "Guardando..." : editingUser ? "Guardar acceso" : "Crear usuario"}</button></footer></form></Modal>}
   </div>;
 }

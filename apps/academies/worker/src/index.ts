@@ -6,6 +6,7 @@ import {
   createRecord,
   createSession,
   createViewer,
+  canAccessAcademy,
   deleteRecord,
   deleteSession,
   ensureAcademyIds,
@@ -64,7 +65,12 @@ function academyIdsField(value: unknown): string[] | null {
 }
 
 function publicUser(user: User) {
-  return { id: user.id, username: user.username, role: user.role };
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    can_write: user.role === "admin" || user.can_write === 1,
+  };
 }
 
 function isUniqueConstraint(error: unknown): boolean {
@@ -136,6 +142,17 @@ const requireAdmin = async (
 ) => {
   if (c.get("user").role !== "admin") {
     return c.json({ error: "Acción reservada al administrador" }, 403);
+  }
+  await next();
+};
+
+const requireRecordWriter = async (
+  c: AppContext,
+  next: () => Promise<void>,
+) => {
+  const user = c.get("user");
+  if (user.role !== "admin" && user.can_write !== 1) {
+    return c.json({ error: "Acción reservada a usuarios con permiso de carga" }, 403);
   }
   await next();
 };
@@ -280,6 +297,7 @@ app.post("/api/users", authenticate, requireAdmin, async (c) => {
   const username = textField(body, "username", 100);
   const passwordHash = typeof body.passwordHash === "string" ? body.passwordHash : "";
   const academyIds = academyIdsField(body.academyIds);
+  const canWrite = body.canWrite === true;
   if (!/^[\p{L}\p{N}_.-]{3,100}$/u.test(username)) {
     return c.json({ error: "El usuario debe tener 3 o más caracteres válidos" }, 400);
   }
@@ -297,8 +315,11 @@ app.post("/api/users", authenticate, requireAdmin, async (c) => {
       username,
       await protectPasswordHash(passwordHash, pepper),
       academyIds,
+      canWrite,
     );
-    return c.json({ user: { ...user, academy_ids: academyIds } }, 201);
+    return c.json({
+      user: { ...publicUser(user), active: user.active, academy_ids: academyIds },
+    }, 201);
   } catch (error) {
     if (isUniqueConstraint(error)) return c.json({ error: "Ese usuario ya existe" }, 409);
     throw error;
@@ -315,6 +336,7 @@ app.patch("/api/users/:id", authenticate, requireAdmin, async (c) => {
     return c.json({ error: "Selecciona academias válidas" }, 400);
   }
   const passwordHash = typeof body.passwordHash === "string" ? body.passwordHash : "";
+  const canWrite = body.canWrite === true;
   if (passwordHash && !isValidPasswordHash(passwordHash)) {
     return c.json({ error: "La contraseña no tiene un formato válido" }, 400);
   }
@@ -322,6 +344,7 @@ app.patch("/api/users/:id", authenticate, requireAdmin, async (c) => {
   const updated = await updateViewer(c.env.DB, c.req.param("id") ?? "", {
     academyIds,
     active: body.active,
+    canWrite,
     ...(passwordHash
       ? { passwordHash: await protectPasswordHash(passwordHash, pepper) }
       : {}),
@@ -350,12 +373,15 @@ app.get("/api/records/:id", authenticate, async (c) => {
   return c.json({ record });
 });
 
-app.post("/api/records", authenticate, requireAdmin, async (c) => {
+app.post("/api/records", authenticate, requireRecordWriter, async (c) => {
   const body = jsonObject(await c.req.json().catch(() => null));
   if (!body) return c.json({ error: "Datos no válidos" }, 400);
   const academyId = typeof body.academy_id === "string" ? body.academy_id : "";
   if (!await ensureAcademyIds(c.env.DB, [academyId])) {
     return c.json({ error: "Selecciona una academia válida" }, 400);
+  }
+  if (!await canAccessAcademy(c.env.DB, c.get("user"), academyId)) {
+    return c.json({ error: "No tienes permiso para esta academia" }, 403);
   }
   try {
     const record = await createRecord(c.env.DB, validateRecord(body, academyId));
@@ -368,12 +394,18 @@ app.post("/api/records", authenticate, requireAdmin, async (c) => {
   }
 });
 
-app.put("/api/records/:id", authenticate, requireAdmin, async (c) => {
+app.put("/api/records/:id", authenticate, requireRecordWriter, async (c) => {
   const body = jsonObject(await c.req.json().catch(() => null));
   if (!body) return c.json({ error: "Datos no válidos" }, 400);
   const academyId = typeof body.academy_id === "string" ? body.academy_id : "";
   if (!await ensureAcademyIds(c.env.DB, [academyId])) {
     return c.json({ error: "Selecciona una academia válida" }, 400);
+  }
+  if (!await getRecord(c.env.DB, c.req.param("id") ?? "", c.get("user"))) {
+    return c.json({ error: "Registro no encontrado" }, 404);
+  }
+  if (!await canAccessAcademy(c.env.DB, c.get("user"), academyId)) {
+    return c.json({ error: "No tienes permiso para esta academia" }, 403);
   }
   try {
     const record = validateRecord(body, academyId);
@@ -403,11 +435,14 @@ async function uploadRows(c: AppContext) {
   if (!await ensureAcademyIds(c.env.DB, [upload.academyId])) {
     throw new ImportInputError("Selecciona una academia válida");
   }
+  if (!await canAccessAcademy(c.env.DB, c.get("user"), upload.academyId)) {
+    throw new ImportInputError("No tienes permiso para esta academia");
+  }
   const rows = await previewImport(c.env.DB, upload.data, upload.filename, upload.academyId);
   return { upload, rows };
 }
 
-app.post("/api/import/preview", authenticate, requireAdmin, async (c) => {
+app.post("/api/import/preview", authenticate, requireRecordWriter, async (c) => {
   try {
     const { rows } = await uploadRows(c);
     return c.json({
@@ -423,7 +458,7 @@ app.post("/api/import/preview", authenticate, requireAdmin, async (c) => {
   }
 });
 
-app.post("/api/import/commit", authenticate, requireAdmin, async (c) => {
+app.post("/api/import/commit", authenticate, requireRecordWriter, async (c) => {
   try {
     const { upload, rows } = await uploadRows(c);
     if (!upload.confirmed) {

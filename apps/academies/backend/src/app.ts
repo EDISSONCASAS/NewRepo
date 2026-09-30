@@ -54,7 +54,12 @@ function academyIdsField(value: unknown): string[] | null {
 }
 
 function publicUser(user: User) {
-  return { id: user.id, username: user.username, role: user.role };
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    can_write: user.role === "admin" || user.can_write === 1,
+  };
 }
 
 async function readUpload(request: FastifyRequest): Promise<Upload> {
@@ -148,6 +153,13 @@ export async function buildApp(options: AppOptions = {}) {
     }
   };
 
+  const requireRecordWriter = async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = request.academyUser;
+    if (user?.role !== "admin" && user?.can_write !== 1) {
+      await reply.code(403).send({ error: "Acción reservada a usuarios con permiso de carga" });
+    }
+  };
+
   app.get("/api/health", async () => ({ status: "ok" }));
 
   app.post("/api/auth/login", {
@@ -210,6 +222,7 @@ export async function buildApp(options: AppOptions = {}) {
     const username = textField(body, "username", 100);
     const password = typeof body.password === "string" ? body.password : "";
     const academyIds = academyIdsField(body.academyIds);
+    const canWrite = body.canWrite === true;
     if (!/^[\p{L}\p{N}_.-]{3,100}$/u.test(username)) {
       return reply.code(400).send({ error: "El usuario debe tener 3 o más caracteres válidos" });
     }
@@ -220,7 +233,7 @@ export async function buildApp(options: AppOptions = {}) {
       return reply.code(400).send({ error: "Asigna al menos una academia válida" });
     }
     try {
-      const user = store.createViewer(username, await hashPassword(password), academyIds);
+      const user = store.createViewer(username, await hashPassword(password), academyIds, canWrite);
       return reply.code(201).send({ user: { ...publicUser(user), active: user.active, academy_ids: academyIds } });
     } catch {
       return reply.code(409).send({ error: "Ese nombre de usuario ya está en uso" });
@@ -234,6 +247,7 @@ export async function buildApp(options: AppOptions = {}) {
     if (!body) return reply.code(400).send({ error: "Datos no válidos" });
     const academyIds = academyIdsField(body.academyIds);
     const active = typeof body.active === "boolean" ? body.active : null;
+    const canWrite = body.canWrite === true;
     const password = typeof body.password === "string" ? body.password : "";
     if (!academyIds || !ensureAcademyIds(store, academyIds) || active === null) {
       return reply.code(400).send({ error: "Indica el estado y las academias válidas" });
@@ -242,7 +256,7 @@ export async function buildApp(options: AppOptions = {}) {
       return reply.code(400).send({ error: "La contraseña debe tener al menos 12 caracteres" });
     }
     const passwordHash = password ? await hashPassword(password) : undefined;
-    if (!store.updateViewer(request.params.id, { academyIds, active, passwordHash })) {
+    if (!store.updateViewer(request.params.id, { academyIds, active, canWrite, passwordHash })) {
       return reply.code(404).send({ error: "Usuario no encontrado" });
     }
     return { updated: true };
@@ -279,13 +293,16 @@ export async function buildApp(options: AppOptions = {}) {
   });
 
   app.post("/api/records", {
-    preHandler: [authenticate, requireAdmin],
+    preHandler: [authenticate, requireRecordWriter],
   }, async (request, reply) => {
     const body = bodyObject(request.body);
     if (!body) return reply.code(400).send({ error: "Datos no válidos" });
     const academyId = typeof body.academy_id === "string" ? body.academy_id : "";
     if (!store.academyExists(academyId)) {
       return reply.code(400).send({ error: "Selecciona una academia válida" });
+    }
+    if (!store.canAccessAcademy(request.academyUser!, academyId)) {
+      return reply.code(403).send({ error: "No tienes permiso para esta academia" });
     }
     try {
       const record = store.createRecord(validateRecord(body, academyId));
@@ -296,13 +313,19 @@ export async function buildApp(options: AppOptions = {}) {
   });
 
   app.put<{ Params: { id: string } }>("/api/records/:id", {
-    preHandler: [authenticate, requireAdmin],
+    preHandler: [authenticate, requireRecordWriter],
   }, async (request, reply) => {
     const body = bodyObject(request.body);
     if (!body) return reply.code(400).send({ error: "Datos no válidos" });
     const academyId = typeof body.academy_id === "string" ? body.academy_id : "";
     if (!store.academyExists(academyId)) {
       return reply.code(400).send({ error: "Selecciona una academia válida" });
+    }
+    if (!store.getRecord(request.params.id, request.academyUser!)) {
+      return reply.code(404).send({ error: "Registro no encontrado" });
+    }
+    if (!store.canAccessAcademy(request.academyUser!, academyId)) {
+      return reply.code(403).send({ error: "No tienes permiso para esta academia" });
     }
     try {
       const record = validateRecord(body, academyId);
@@ -325,12 +348,15 @@ export async function buildApp(options: AppOptions = {}) {
   });
 
   app.post("/api/import/preview", {
-    preHandler: [authenticate, requireAdmin],
+    preHandler: [authenticate, requireRecordWriter],
   }, async (request, reply) => {
     try {
       const upload = await readUpload(request);
       if (!store.academyExists(upload.academyId)) {
         return reply.code(400).send({ error: "Selecciona una academia válida" });
+      }
+      if (!store.canAccessAcademy(request.academyUser!, upload.academyId)) {
+        return reply.code(403).send({ error: "No tienes permiso para esta academia" });
       }
       const rows = await previewImport(upload.data, upload.filename, upload.academyId, store);
       return {
@@ -346,12 +372,15 @@ export async function buildApp(options: AppOptions = {}) {
   });
 
   app.post("/api/import/commit", {
-    preHandler: [authenticate, requireAdmin],
+    preHandler: [authenticate, requireRecordWriter],
   }, async (request, reply) => {
     try {
       const upload = await readUpload(request);
       if (!store.academyExists(upload.academyId)) {
         return reply.code(400).send({ error: "Selecciona una academia válida" });
+      }
+      if (!store.canAccessAcademy(request.academyUser!, upload.academyId)) {
+        return reply.code(403).send({ error: "No tienes permiso para esta academia" });
       }
       if (!upload.confirmed) {
         return reply.code(400).send({ error: "Confirma la importación después de revisar la vista previa" });

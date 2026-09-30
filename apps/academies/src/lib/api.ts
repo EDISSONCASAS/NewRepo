@@ -4,6 +4,7 @@ export interface User {
   id: string;
   username: string;
   role: Role;
+  can_write: boolean;
 }
 
 export interface Academy {
@@ -201,16 +202,16 @@ export const api = {
   createAcademy: (name: string, city: string) =>
     request<{ academy: Academy }>("/api/academies", json({ name, city })),
   users: () => request<{ users: AcademyUser[] }>("/api/users"),
-  createUser: async (username: string, password: string, academyIds: string[]) => {
+  createUser: async (username: string, password: string, academyIds: string[], canWrite: boolean) => {
     const credentials = workerPasswordProtocol
       ? { passwordHash: await derivePasswordHash(password) }
       : { password };
     return request<{ user: AcademyUser }>(
       "/api/users",
-      json({ username, ...credentials, academyIds }),
+      json({ username, ...credentials, academyIds, canWrite }),
     );
   },
-  updateUser: async (id: string, academyIds: string[], active: boolean, password = "") => {
+  updateUser: async (id: string, academyIds: string[], active: boolean, canWrite: boolean, password = "") => {
     const credentials = password
       ? workerPasswordProtocol
         ? { passwordHash: await derivePasswordHash(password) }
@@ -218,7 +219,7 @@ export const api = {
       : {};
     return request<{ updated: boolean }>(`/api/users/${encodeURIComponent(id)}`, {
       method: "PATCH",
-      body: JSON.stringify({ academyIds, active, ...credentials }),
+      body: JSON.stringify({ academyIds, active, canWrite, ...credentials }),
     });
   },
   records: (query: URLSearchParams) =>
