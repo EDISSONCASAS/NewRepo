@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: paddock-academias
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./apps/academies/Dockerfile
+    dockerContext: ./apps/academies
+    healthCheckPath: /api/health
+    disk:
+      name: paddock-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: ACADEMIES_DATA_DIR
+        value: /var/data
+      - key: INITIAL_ADMIN_USERNAME
+        sync: false
+      - key: INITIAL_ADMIN_PASSWORD
+        sync: false
