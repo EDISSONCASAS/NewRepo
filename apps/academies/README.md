@@ -68,6 +68,8 @@ npm audit --prefix apps/academies/backend --omit=dev
 
 ## Despliegue gratuito en Cloudflare
 
+Este despliegue crea **un Worker y una base D1 independientes para Paddock**; no reemplaza el sitio de GitHub Pages ni ningún Worker, Pages project o base de datos que ya exista. Paddock vive en `apps/academies/` dentro del repositorio, separado de la página actual en la raíz. El nombre `paddock-academias` ya pertenece a recursos existentes de Cloudflare; por eso esta instancia usa el Worker `paddock-academias-portal` y la base D1 `paddock-academias-portal-db`. Conserva esos nombres y su configuración en `worker/wrangler.jsonc`, y no ejecutes Wrangler desde otro directorio o con la configuración del sitio existente.
+
 El Worker sirve el frontend y la API bajo el mismo origen; D1 conserva usuarios, academias, sesiones y registros aunque el Worker se reinicie. La configuración está en `worker/wrangler.jsonc`. Necesitas una cuenta de Cloudflare y Wrangler autenticado (`npx wrangler login`). Desde la raíz del repositorio:
 
 1. Instala dependencias y compila el frontend:
@@ -82,7 +84,7 @@ El Worker sirve el frontend y la API bajo el mismo origen; D1 conserva usuarios,
 
    ```powershell
    Set-Location apps/academies/worker
-   npx wrangler d1 create paddock-academias
+   npx wrangler d1 create paddock-academias-portal-db
    ```
 
    Sustituye `REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID` por ese identificador en `wrangler.jsonc`.
@@ -90,7 +92,7 @@ El Worker sirve el frontend y la API bajo el mismo origen; D1 conserva usuarios,
 3. Aplica el esquema y configura las credenciales iniciales como secretos:
 
    ```powershell
-   npx wrangler d1 migrations apply paddock-academias --remote
+   npx wrangler d1 migrations apply paddock-academias-portal-db --remote
    ```
 
    El nombre debe tener entre 3 y 100 caracteres válidos. Para no gastar el límite de CPU gratuito en el servidor, el hash PBKDF2 se calcula en tu equipo y se pega a Wrangler por entrada estándar:
@@ -132,7 +134,7 @@ El plan gratuito de Workers limita cada petición a 10 ms de CPU y 100.000 solic
 
 ```powershell
 Set-Location apps/academies/worker
-npx wrangler d1 migrations apply paddock-academias --local
+npx wrangler d1 migrations apply paddock-academias-portal-db --local
 npm run dev
 ```
 

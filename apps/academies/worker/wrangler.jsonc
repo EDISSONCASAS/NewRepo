@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "paddock-academias",
+  "name": "paddock-academias-portal",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-29",
   "compatibility_flags": ["nodejs_compat"],
@@ -13,8 +13,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "paddock-academias",
-      "database_id": "REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID",
+      "database_name": "paddock-academias-portal-db",
+      "database_id": "78ae3333-6d87-42ad-afdd-0dfb3f605647",
       "migrations_dir": "migrations"
     }
   ],
