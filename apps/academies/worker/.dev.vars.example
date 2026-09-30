@@ -1,0 +1,3 @@
+INITIAL_ADMIN_USERNAME=paddock-admin
+INITIAL_ADMIN_PASSWORD_HASH=replace-with-local-generator-output
+PASSWORD_PEPPER=replace-with-a-random-32-byte-secret

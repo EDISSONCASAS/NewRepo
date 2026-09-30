@@ -1,0 +1,21 @@
+{
+  "name": "@paddock/academies-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --config wrangler.jsonc",
+    "deploy": "wrangler deploy --config wrangler.jsonc",
+    "types": "wrangler types --config wrangler.jsonc",
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "csv-parse": "7.0.3",
+    "hono": "4.13.11"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260930.1",
+    "typescript": "6.0.3",
+    "wrangler": "4.144.0"
+  }
+}
